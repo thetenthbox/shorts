@@ -1,0 +1,89 @@
+<!-- Callout Cell Component
+     Zoom-out highlight cells for key values
+     Position using .callout-1, .callout-2, etc. or custom top/left
+-->
+
+<div class="callout-container">
+  <div class="callout callout-1" id="callout1">
+    <div class="callout-label">WACC</div>
+    <div class="callout-value">9.5%</div>
+  </div>
+  <div class="callout callout-2" id="callout2">
+    <div class="callout-label">Exit Multiple</div>
+    <div class="callout-value">8.0x</div>
+  </div>
+  <div class="callout callout-3" id="callout3">
+    <div class="callout-label">Growth Rate</div>
+    <div class="callout-value">3.0%</div>
+  </div>
+</div>
+
+<style>
+.callout-container {
+  position: absolute;
+  top: 680px;
+  left: 40px;
+  right: 40px;
+  z-index: 3;
+  pointer-events: none;
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+}
+
+.callout-container.swipe-out {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.callout {
+  position: absolute;
+  display: flex;
+  background: #fff;
+  border: 3px solid #1e40af;
+  border-radius: 8px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  opacity: 0;
+  transform: scale(0.5);
+  transform-origin: left center;
+}
+
+.callout.animate {
+  animation: zoomOut 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.callout-label {
+  background: #1e40af;
+  color: #fff;
+  padding: 20px 28px;
+  font-family: 'Consolas', monospace;
+  font-size: 36px;
+  font-weight: 600;
+}
+
+.callout-value {
+  background: #fff;
+  color: #1e40af;
+  padding: 20px 28px;
+  font-family: 'Consolas', monospace;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+/* Default positions - customize as needed */
+.callout-1 { top: 60px; left: 50px; }
+.callout-2 { top: 200px; left: 120px; }
+.callout-3 { top: 340px; left: 80px; }
+.callout-4 { top: 480px; left: 100px; }
+
+/* Animation keyframe */
+@keyframes zoomOut {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+</style>
+

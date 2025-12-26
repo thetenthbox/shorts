@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1learner Short - [TITLE]</title>
+  <style>
+    @import url('https://fonts.cdnfonts.com/css/cmu-serif');
+
+    /* ========================================
+       1LEARNER SHORTS BASE TEMPLATE
+       See docs/COMPONENT_LIBRARY.md for usage
+       ======================================== */
+
+    /* === RESET === */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* === BRAND COLORS === */
+    :root {
+      --blue-primary: #1e3a5f;
+      --blue-accent: #1e40af;
+      --text-dark: #1f2937;
+      --text-muted: #374151;
+      --text-light: #9ca3af;
+      --bg-white: #ffffff;
+      --border-light: #d1d5db;
+    }
+
+    /* === BODY === */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #1a1a1a;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    /* === SHORTS CONTAINER === */
+    .shorts-container {
+      width: 1080px;
+      height: 1920px;
+      position: relative;
+      overflow: hidden;
+      transform: scale(0.4);
+      transform-origin: center center;
+    }
+
+    /* === WHITE BACKDROP === */
+    .white-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-white);
+      z-index: 1;
+    }
+
+    .plus-pattern {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(var(--border-light) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
+      background-size: 80px 80px;
+      opacity: 0.5;
+    }
+
+    .plus-pattern::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: radial-gradient(circle, var(--text-light) 3px, transparent 3px);
+      background-size: 80px 80px;
+      background-position: 40px 40px;
+    }
+
+    /* === TEXT CONTENT === */
+    .text-content {
+      position: absolute;
+      top: 120px;
+      left: 80px;
+      right: 80px;
+      z-index: 2;
+      font-family: 'CMU Serif', Georgia, serif;
+      transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    }
+
+    .text-content.swipe-out {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+
+    .bullet {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 50px;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .bullet.animate {
+      animation: fadeUp 0.5s ease-out forwards;
+    }
+
+    .bullet-dot {
+      font-size: 48px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .bullet-text {
+      font-size: 48px;
+      color: var(--text-dark);
+      line-height: 1.4;
+    }
+
+    .quote-text {
+      font-style: italic;
+    }
+
+    /* === BLUE PANEL === */
+    .blue-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--blue-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+
+    .blue-panel.animate-exit {
+      animation: slideOutRight 0.6s ease-in-out forwards;
+    }
+
+    .title {
+      font-size: 140px;
+      font-weight: 800;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 10px;
+    }
+
+    /* === IMAGE CONTAINER === */
+    .image-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    .pan-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 200%;
+      height: 100%;
+      object-fit: cover;
+      object-position: left center;
+      transform: scale(1.3);
+      transform-origin: center center;
+      filter: brightness(0.8);
+    }
+
+    .pan-image.animate-pan {
+      animation: panRight 2.5s ease-in-out forwards;
+    }
+
+    .image-container.animate-exit {
+      animation: slideOutDown 0.6s ease-in-out forwards;
+    }
+
+    /* === ANIMATIONS === */
+    @keyframes fadeUp {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes zoomOut {
+      0% { opacity: 0; transform: scale(0.5); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes slideOutDown {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(100%); }
+    }
+
+    @keyframes slideOutRight {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(100%); }
+    }
+
+    @keyframes panRight {
+      0% { transform: scale(1.3) translateX(0); }
+      100% { transform: scale(1.4) translateX(-15%); }
+    }
+
+    /* === CONTROLS === */
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--blue-primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+    }
+
+    /* === SIDE NAV === */
+    .side-nav {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 100;
+    }
+
+    .side-btn {
+      width: 140px;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--text-muted);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s;
+    }
+
+    .side-btn:hover {
+      background: var(--blue-primary);
+    }
+
+    .side-btn.active {
+      background: var(--blue-accent);
+    }
+
+    /* === ADD YOUR CUSTOM STYLES BELOW === */
+
+  </style>
+</head>
+<body>
+  <div class="shorts-container">
+    
+    <!-- LAYER 1: White Backdrop (bottom) -->
+    <div class="white-backdrop">
+      <div class="plus-pattern"></div>
+      
+      <!-- Your content here -->
+      <div class="text-content">
+        <!-- Add bullets, text, etc. -->
+      </div>
+
+    </div>
+
+    <!-- LAYER 2: Blue Panel (middle) -->
+    <div class="blue-panel" id="bluePanel">
+      <div class="title">YOUR TITLE</div>
+    </div>
+
+    <!-- LAYER 3: Image (top) -->
+    <div class="image-container" id="imageContainer">
+      <img src="image.png" alt="Background" class="pan-image" id="panImage">
+    </div>
+
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" onclick="replay()">▶ Play All</button>
+    <button class="btn" id="speedBtn" onclick="toggleSpeed()">1x</button>
+  </div>
+
+  <!-- Side Navigation -->
+  <div class="side-nav">
+    <button class="side-btn" onclick="jumpTo(1)">1. Section</button>
+    <button class="side-btn" onclick="jumpTo(2)">2. Section</button>
+    <!-- Add more sections as needed -->
+  </div>
+
+  <script>
+    // === SPEED CONTROL ===
+    let speed = 1;
+
+    function toggleSpeed() {
+      speed = speed === 1 ? 3 : 1;
+      document.getElementById('speedBtn').textContent = speed + 'x';
+    }
+
+    function t(ms) {
+      return ms / speed;
+    }
+
+    // === MAIN ANIMATION ===
+    function animate() {
+      // Get elements
+      const imageContainer = document.getElementById('imageContainer');
+      const panImage = document.getElementById('panImage');
+      const bluePanel = document.getElementById('bluePanel');
+
+      // Reset all
+      imageContainer.classList.remove('animate-exit');
+      panImage.classList.remove('animate-pan');
+      bluePanel.classList.remove('animate-exit');
+
+      // Trigger reflow
+      void panImage.offsetWidth;
+
+      // === TIMELINE ===
+      // Customize these timings to match your script
+
+      // 0.0s - Start image pan
+      setTimeout(() => panImage.classList.add('animate-pan'), 0);
+
+      // 2.5s - Image slides down
+      setTimeout(() => imageContainer.classList.add('animate-exit'), t(2500));
+
+      // 4.0s - Blue panel slides right
+      setTimeout(() => bluePanel.classList.add('animate-exit'), t(4000));
+
+      // Add more animation steps here...
+    }
+
+    function replay() {
+      animate();
+    }
+
+    // === JUMP TO SECTION ===
+    function jumpTo(section) {
+      const imageContainer = document.getElementById('imageContainer');
+      const panImage = document.getElementById('panImage');
+      const bluePanel = document.getElementById('bluePanel');
+
+      // Reset
+      imageContainer.classList.remove('animate-exit');
+      panImage.classList.remove('animate-pan');
+      bluePanel.classList.remove('animate-exit');
+      imageContainer.style.transform = '';
+      bluePanel.style.transform = '';
+
+      // Force reflow
+      void imageContainer.offsetWidth;
+
+      // Highlight active button
+      document.querySelectorAll('.side-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === section - 1);
+      });
+
+      // Section logic - customize for your sections
+      if (section === 1) {
+        setTimeout(() => panImage.classList.add('animate-pan'), 50);
+      }
+
+      if (section === 2) {
+        imageContainer.style.transform = 'translateY(100%)';
+      }
+
+      // Add more section handlers...
+    }
+
+    // Auto-start on load
+    window.onload = () => setTimeout(animate, 500);
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,122 @@
+<!-- DCF Spreadsheet Component
+     Copy this into your scene inside .white-backdrop
+     Add #spreadsheet ID and wire up animations
+-->
+
+<div class="excel-container" id="spreadsheet">
+  <table class="spreadsheet">
+    <tr>
+      <td class="header"></td>
+      <td class="header">2024</td>
+      <td class="header">2025</td>
+      <td class="header">2026</td>
+      <td class="header">2027</td>
+      <td class="header">2028</td>
+    </tr>
+    <tr>
+      <td class="label-col">Revenue</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+    </tr>
+    <tr>
+      <td class="label-col">EBITDA</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+    </tr>
+    <tr>
+      <td class="label-col">FCF</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+    </tr>
+    <tr>
+      <td class="label-col">Discount Factor</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+    </tr>
+    <tr>
+      <td class="label-col">PV of FCF</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+    </tr>
+    <tr>
+      <td class="label-col">Terminal Value</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+      <td class="dash">—</td>
+    </tr>
+  </table>
+</div>
+
+<style>
+.excel-container {
+  position: absolute;
+  top: 680px;
+  left: 40px;
+  right: 40px;
+  z-index: 2;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+}
+
+.excel-container.animate {
+  animation: fadeUp 0.5s ease-out forwards;
+}
+
+.excel-container.swipe-out {
+  transform: translateX(-100%) !important;
+  opacity: 0 !important;
+}
+
+.spreadsheet {
+  background: #fff;
+  border: 2px solid #6b7280;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 22px;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.spreadsheet td {
+  border: 1px solid #d1d5db;
+  padding: 12px 16px;
+  color: #374151;
+  text-align: right;
+  min-width: 90px;
+}
+
+.spreadsheet td.label-col {
+  text-align: left;
+  background: #f9fafb;
+  font-weight: 500;
+  min-width: 200px;
+}
+
+.spreadsheet td.header {
+  background: #e5e7eb;
+  font-weight: 600;
+  text-align: center;
+}
+
+.spreadsheet td.dash {
+  color: #9ca3af;
+}
+</style>
+

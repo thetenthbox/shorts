@@ -1,0 +1,116 @@
+<!-- MCQ Question + Options Component
+     Copy this into your scene inside .white-backdrop
+     Wire up mcqContainer, mcqQuestion, and option IDs
+-->
+
+<div class="mcq-container" id="mcqContainer">
+  <div class="mcq-question" id="mcqQuestion">
+    Your question text here?
+  </div>
+  <div class="mcq-options">
+    <div class="mcq-option" id="optionA">
+      <span class="mcq-label">A)</span>
+      <span>First option text.</span>
+    </div>
+    <div class="mcq-option" id="optionB">
+      <span class="mcq-label">B)</span>
+      <span>Second option text.</span>
+    </div>
+    <div class="mcq-option" id="optionC">
+      <span class="mcq-label">C)</span>
+      <span>Third option text.</span>
+    </div>
+    <div class="mcq-option" id="optionD">
+      <span class="mcq-label">D)</span>
+      <span>Fourth option text.</span>
+    </div>
+  </div>
+</div>
+
+<style>
+.mcq-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px;
+  z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mcq-container.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mcq-question {
+  font-family: 'CMU Serif', Georgia, serif;
+  font-size: 52px;
+  color: #1f2937;
+  text-align: center;
+  max-width: 900px;
+  margin-bottom: 80px;
+  line-height: 1.3;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.mcq-question.animate {
+  animation: fadeUp 0.4s ease-out forwards;
+}
+
+.mcq-options {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.mcq-option {
+  background: #fff;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  padding: 28px 36px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 36px;
+  color: #374151;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  opacity: 0;
+  transform: scale(0.95);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mcq-option:hover {
+  border-color: #1e40af;
+  box-shadow: 0 4px 12px rgba(30,64,175,0.15);
+}
+
+.mcq-option.animate {
+  animation: popIn 0.25s ease-out forwards;
+}
+
+.mcq-option.correct {
+  border-color: #16a34a;
+  background: #dcfce7;
+}
+
+.mcq-option.incorrect {
+  border-color: #dc2626;
+  background: #fee2e2;
+}
+
+.mcq-label {
+  font-weight: 700;
+  color: #1e40af;
+  margin-right: 12px;
+}
+</style>
+
