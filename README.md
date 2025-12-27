@@ -41,21 +41,55 @@ shorts --id my_first_short --audio audio_scripts/audio_script1.md --duration 30
 ## How It Works
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Audio Script   │ -> │  Storyboard     │ -> │  Scene Builder  │ -> │  TTS            │ -> │  Render         │
-│  (markdown)     │    │  (GPT-5)        │    │  (Sonnet 4.5)   │    │  (Cartesia)     │    │  (Playwright)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
-     input              timeline.json         scene.html              voiceover.wav         final.mp4
+Audio Script ─┬─► Stage B: Storyboard (GPT-5)
+              │       ├── video_script.md      (voiceover timing tables)
+              │       └── timeline.json        (animation events)
+              │
+              ├─► Stage B2: Detail Pass (GPT-5)
+              │       ├── detailed_script.md   (natural language descriptions)
+              │       └── refined_timeline.json
+              │
+              ├─► Stage C: Scene Builder (Sonnet 4.5)
+              │       └── scene.html           (runnable animation)
+              │
+              ├─► Stage D: TTS (Cartesia Sonic 3)
+              │       └── voiceover.wav
+              │
+              └─► Stage E: Render (Playwright + ffmpeg)
+                      └── final.mp4
 ```
 
 ### Pipeline Stages
 
-| Stage | Model/Tool | Input | Output |
-|-------|------------|-------|--------|
-| **B: Storyboard** | OpenRouter (GPT-5) | audio_script.md | timeline.json, video_script.md |
-| **C: Scene Builder** | OpenRouter (Sonnet 4.5) | timeline.json + templates | scene.html |
-| **D: TTS** | Cartesia Sonic 3 | audio_script text | voiceover.wav |
-| **E: Render** | Playwright + ffmpeg | scene.html + wav | final.mp4 |
+| Stage | Model | What It Does | Output |
+|-------|-------|--------------|--------|
+| **B: Storyboard** | GPT-5 | Converts audio script to timed animation plan. Creates voiceover timing tables mapping each phrase to a timestamp. Generates animation triggers tied to specific spoken words. | `video_script.md`, `timeline.json` |
+| **B2: Detail Pass** | GPT-5 | Writes detailed natural language descriptions of each scene. Specifies exact positions, colors, fonts, and animation specs. Describes what the viewer sees moment-by-moment. | `detailed_script.md`, `refined_timeline.json` |
+| **C: Scene Builder** | Sonnet 4.5 | Generates complete HTML/CSS/JS from the timeline and detailed script. Creates all visual elements and a `__shortsPlayAll()` function that executes animations at the correct times. | `scene.html`, `scene_spec.json` |
+| **D: TTS** | Cartesia Sonic 3 | Synthesizes voiceover audio from the script. Returns word-level timestamps for sync. | `voiceover.wav` |
+| **E: Render** | Playwright + ffmpeg | Captures frames from the HTML animation using headless Chromium. Encodes to MP4 and muxes with audio. | `video.mp4`, `final.mp4` |
+
+### Key Concept: Voiceover-Driven Timing
+
+The entire animation is synced to the voiceover. Stage B produces timing tables like:
+
+```markdown
+| Time | Words |
+|------|-------|
+| 0.0s - 1.2s | "Let's say you're working" |
+| 1.2s - 2.8s | "at a bulge bracket investment bank" |
+| 2.8s - 4.0s | "on Wall Street." |
+```
+
+And animation triggers tied to specific words:
+
+```json
+{"t_ms": 2800, "op": "textSet", "target": "titleText", "value": "WALL STREET", "trigger": "Wall Street"}
+```
+
+Stage B2 then describes exactly what happens visually:
+
+> "At 2.8s, when the voiceover says 'on Wall Street,' bold centered text 'WALL STREET' fades up smoothly from 20px below to rest at screen center (duration 500ms, ease-out). The font is CMU Serif, 56px, dark grey (#1f2937)..."
 
 ---
 
@@ -70,7 +104,7 @@ shorts --id <run_id> --audio <path> [options]
 | Argument | Description |
 |----------|-------------|
 | `--id` | Unique identifier for this run (used for output filenames) |
-| `--audio` | Path to audio script markdown file |
+| `--audio` | Path to audio script markdown file (not needed with `--render-only`) |
 
 ### Optional Arguments
 
@@ -79,6 +113,7 @@ shorts --id <run_id> --audio <path> [options]
 | `--duration` | 60 | Target video duration in seconds |
 | `--skip-tts` | false | Skip voiceover generation |
 | `--skip-render` | false | Skip Playwright/ffmpeg rendering |
+| `--render-only` | false | Only render MP4 from existing `runs/<id>/scene.html` |
 
 ### Examples
 
@@ -91,6 +126,9 @@ shorts --id demo --audio audio_scripts/audio_script1.md --skip-tts --skip-render
 
 # Generate scripts + HTML + TTS (no render)
 shorts --id demo --audio audio_scripts/audio_script1.md --skip-render
+
+# Re-render after editing scene.html manually
+shorts --id demo --render-only
 ```
 
 ---
@@ -135,14 +173,16 @@ Shorts/
 │
 ├── runs/                     # Pipeline run outputs (gitignored)
 │   └── <run_id>/
-│       ├── audio_script.md
-│       ├── timeline.json
-│       ├── video_script.md
-│       ├── scene.html
-│       ├── scene_spec.json
-│       ├── frames/
-│       ├── video.mp4
-│       └── final.mp4
+│       ├── audio_script.md       # Input script (copied)
+│       ├── video_script.md       # Stage B: voiceover timing tables
+│       ├── timeline.json         # Stage B: animation events
+│       ├── detailed_script.md    # Stage B2: natural language descriptions
+│       ├── refined_timeline.json # Stage B2: refined events
+│       ├── scene.html            # Stage C: runnable animation
+│       ├── scene_spec.json       # Stage C: element specs
+│       ├── frames/               # Stage E: captured PNGs
+│       ├── video.mp4             # Stage E: video only
+│       └── final.mp4             # Stage E: video + audio
 │
 ├── renders/                  # Final outputs (gitignored)
 │   ├── <run_id>.mp4
@@ -226,22 +266,19 @@ Open `scenes/my_scene.html` in Chrome:
 
 ## Modifying Pipeline Outputs
 
-### Fix timing in scene.html (re-render only)
+### Edit scene.html and re-render
 
-```python
-from pathlib import Path
-from agent.renderer import render_mp4
+1. Open `runs/<id>/scene.html` in your editor
+2. Modify animations, timing, or content
+3. Re-render:
 
-render_mp4(
-    html_path=Path('runs/my_run/scene.html'),
-    output_dir=Path('runs/my_run_fixed'),
-    duration_ms=20000,
-    fps=30,
-    wav_path=Path('renders/my_run.wav'),
-)
+```bash
+shorts --id <id> --render-only
 ```
 
-### Regenerate scene from edited timeline.json
+### Regenerate scene from edited timeline
+
+If you modify `runs/<id>/timeline.json` or `refined_timeline.json`:
 
 ```python
 import json
@@ -251,7 +288,7 @@ from agent.config import get_openrouter_api_key
 from agent.stages import stage_scene_builder, load_base_html, load_animation_library, load_component_library
 
 shorts = Path('.')
-timeline = json.loads((shorts / 'runs/my_run/timeline.json').read_text())
+timeline = json.loads((shorts / 'runs/my_run/refined_timeline.json').read_text())
 client = OpenRouterClient(api_key=get_openrouter_api_key())
 
 result = stage_scene_builder(
@@ -263,6 +300,13 @@ result = stage_scene_builder(
 )
 (shorts / 'runs/my_run/scene_v2.html').write_text(result.html)
 ```
+
+### Preview without rendering
+
+Open `runs/<id>/scene.html` directly in Chrome to preview animations:
+- Click **▶ Play All** to run the full timeline
+- Use **1x / 3x** button to toggle speed
+- Side buttons jump to specific sections
 
 ---
 
@@ -290,19 +334,32 @@ pytest -m "live or render or e2e"
 
 ---
 
+## Visual Style
+
+All animations use a clean **infographic style**:
+
+- **Background**: White (#ffffff) with subtle grey plus-sign pattern
+- **Text**: CMU Serif for body, system-ui for badges
+- **Colors**: Dark grey text (#1f2937), blue accents (#1e40af), white cards
+- **Animations**: Simple, professional motion graphics
+
+This is NOT cinematic/movie-style — think educational explainer video.
+
+---
+
 ## Animation Library
 
 Available CSS animations (see `docs/ANIMATION_LIBRARY.md`):
 
-| Animation | Effect |
-|-----------|--------|
-| `fadeUp` | Fade in from below |
-| `popIn` | Pop/scale in |
-| `zoomOut` | Zoom out effect |
-| `slideOutDown` | Slide down and exit |
-| `slideOutRight` | Slide right and exit |
-| `panRight` | Ken Burns pan effect |
-| `swipe-out` | Swipe left and fade |
+| Animation | Effect | Duration |
+|-----------|--------|----------|
+| `fadeUp` | Fade in + rise from below | 500ms |
+| `popIn` | Scale from 80% to 100% with bounce | 300ms |
+| `zoomOut` | Zoom out magnify effect | 400ms |
+| `slideOutDown` | Slide down and exit | 600ms |
+| `slideOutRight` | Slide right and exit | 600ms |
+| `panRight` | Ken Burns slow pan | 2500ms |
+| `swipe-out` | Swipe left and fade | 500ms |
 
 ---
 
@@ -314,14 +371,29 @@ The pipeline generates `timeline.json` with this structure:
 {
   "duration_ms": 20000,
   "fps": 30,
+  "voiceover_segments": [
+    {"start_ms": 0, "end_ms": 1200, "text": "Let's say you're working"},
+    {"start_ms": 1200, "end_ms": 2800, "text": "at a bulge bracket investment bank"},
+    {"start_ms": 2800, "end_ms": 4000, "text": "on Wall Street."}
+  ],
   "events": [
-    {"t_ms": 0, "op": "layerShow", "target": "intro"},
+    {"t_ms": 0, "op": "layerShow", "target": "intro", "trigger": "Let's"},
     {"t_ms": 0, "op": "classAdd", "target": "title", "value": "fadeUp"},
-    {"t_ms": 2000, "op": "textSet", "target": "subtitle", "value": "New text"},
+    {"t_ms": 2800, "op": "textSet", "target": "subtitle", "value": "WALL STREET", "trigger": "Wall Street"},
     {"t_ms": 5000, "op": "layerHide", "target": "intro"}
   ]
 }
 ```
+
+### Event Fields
+
+| Field | Description |
+|-------|-------------|
+| `t_ms` | Timestamp in milliseconds |
+| `op` | Operation to perform |
+| `target` | Element ID |
+| `value` | CSS class or text content |
+| `trigger` | (optional) Spoken word that triggers this animation |
 
 ### Operations
 
@@ -331,7 +403,11 @@ The pipeline generates `timeline.json` with this structure:
 | `classRemove` | Remove CSS class from element |
 | `layerShow` | Show element (display: block) |
 | `layerHide` | Hide element (display: none) |
-| `textSet` | Set element's text content |
+| `textSet` | Set element's innerHTML |
+
+### Voiceover Segments
+
+The `voiceover_segments` array maps the audio script to precise timestamps, allowing animations to sync with specific phrases.
 
 ---
 
