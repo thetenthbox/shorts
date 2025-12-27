@@ -34,35 +34,66 @@ def stage_storyboard(
     system_prompt = """You are a professional video storyboard agent for short-form vertical videos (1080x1920).
 
 Given an audio script, produce:
-1. A DETAILED video_script in markdown
-2. A precise timeline JSON with animation events
+1. A DETAILED video_script in markdown with EXACT voiceover timing
+2. A precise timeline JSON with animation events synced to voiceover
+
+## CRITICAL: VOICEOVER-DRIVEN TIMING
+The video MUST be driven by the voiceover. Every animation should be triggered by specific words being spoken.
+
+Assume speaking rate: ~150 words per minute (~2.5 words/second, ~400ms per word)
 
 ## VIDEO SCRIPT REQUIREMENTS
 The video_script_md MUST include for EACH scene:
-- **Timestamp range** (e.g., "0.0s - 2.5s")
-- **Voiceover text** (exact words being spoken during this scene)
-- **Visual elements**: What appears on screen (exact text, images, components)
-- **Animation sequence**: Step-by-step animations with timing offsets
-- **Transition**: How this scene exits/next scene enters
 
-Example format:
+### 1. EXACT TRANSCRIPT with word-level timing estimates
+Break down the voiceover into phrases, estimating when each phrase starts/ends.
+
+### 2. ANIMATION TRIGGERS tied to specific words
+Specify which word triggers each animation.
+
+### 3. ON-SCREEN TEXT that matches voiceover
+Any text shown should reinforce what's being said.
+
+## EXAMPLE FORMAT:
+
+```markdown
+## SCENE 1: HOOK (0.0s - 6.5s)
+
+### Voiceover Transcript:
+| Time | Words |
+|------|-------|
+| 0.0s - 1.2s | "Let's say you're working" |
+| 1.2s - 2.8s | "at a bulge bracket investment bank" |
+| 2.8s - 4.0s | "on Wall Street." |
+| 4.0s - 5.2s | "Your senior associate" |
+| 5.2s - 6.5s | "is ripping your model apart." |
+
+### Animation Triggers:
+| Trigger Word | Time | Animation |
+|--------------|------|-----------|
+| "Let's" | 0.0s | wallstreetContainer → layerShow + panRight |
+| "Wall Street" | 2.8s | Text "WALL STREET" → fadeUp |
+| "associate" | 4.5s | wallstreetContainer → slideOutDown |
+| "ripping" | 5.5s | spreadsheet → layerShow + popIn |
+
+### Visual Elements:
+- Wall Street cityscape image (zoomed 130%, panning right)
+- Text overlay: "WALL STREET" (white, 72px, appears at 2.8s)
+- Spreadsheet with red highlights (appears at 5.5s)
+
+### On-Screen Text:
+- (2.8s) "WALL STREET" - centered, white, 72px
+- (5.5s) Spreadsheet cells highlighted in red
 ```
-## SCENE 1: HOOK (0.0s - 3.0s)
 
-**Voiceover:**
-> "Let's say you're working at a bulge bracket investment bank..."
-
-**Visual:**
-- Wall Street image fills screen (zoomed 130%)
-- Text overlay: "WALL STREET" (white, 72px, centered)
-
-**Animation sequence:**
-1. (0.0s) Image starts panning right with `panRight`
-2. (1.5s) Text fades up with `fadeUp`
-3. (2.5s) Image slides down with `slideOutDown`
-
-**Transition:** Slide down reveals blue panel
-```
+## SCENE STRUCTURE
+Each scene should cover ONE logical unit of the script:
+1. **HOOK** (0-6s): Grab attention, establish context
+2. **PROBLEM** (6-12s): Present the conflict/question
+3. **OPTIONS** (12-18s): Show choices (MCQ format works well)
+4. **INSIGHT** (18-30s): Reveal the answer/strategy
+5. **STEPS** (30-45s): Actionable takeaways
+6. **CTA** (45-50s): Call to action, branding
 
 ## AVAILABLE ANIMATIONS
 - fadeUp: fade in from below (0.5s)
@@ -89,17 +120,31 @@ Example format:
 {
   "duration_ms": <total duration in milliseconds>,
   "fps": 30,
+  "voiceover_segments": [
+    {"start_ms": 0, "end_ms": 1200, "text": "Let's say you're working"},
+    {"start_ms": 1200, "end_ms": 2800, "text": "at a bulge bracket investment bank"},
+    {"start_ms": 2800, "end_ms": 4000, "text": "on Wall Street."}
+  ],
   "events": [
-    {"t_ms": 0, "op": "layerShow", "target": "wallstreetContainer"},
+    {"t_ms": 0, "op": "layerShow", "target": "wallstreetContainer", "trigger": "Let's"},
     {"t_ms": 0, "op": "classAdd", "target": "wallstreetImg", "value": "panRight"},
-    {"t_ms": 2500, "op": "classAdd", "target": "wallstreetContainer", "value": "slideOutDown"},
-    {"t_ms": 3100, "op": "layerHide", "target": "wallstreetContainer"},
-    {"t_ms": 3100, "op": "layerShow", "target": "bluePanel"},
-    {"t_ms": 4000, "op": "textSet", "target": "bullet1", "value": "Your exact text here"}
+    {"t_ms": 2800, "op": "textSet", "target": "titleText", "value": "WALL STREET", "trigger": "Wall Street"},
+    {"t_ms": 2800, "op": "classAdd", "target": "titleText", "value": "fadeUp"},
+    {"t_ms": 4500, "op": "classAdd", "target": "wallstreetContainer", "value": "slideOutDown", "trigger": "associate"},
+    {"t_ms": 5100, "op": "layerHide", "target": "wallstreetContainer"},
+    {"t_ms": 5500, "op": "layerShow", "target": "spreadsheet", "trigger": "ripping"},
+    {"t_ms": 5500, "op": "classAdd", "target": "spreadsheet", "value": "popIn"}
   ]
 }
 
-Operations:
+### Event Fields:
+- t_ms: Timestamp in milliseconds
+- op: Operation (classAdd, classRemove, layerShow, layerHide, textSet)
+- target: Element ID
+- value: CSS class name OR text content (for textSet)
+- trigger: (optional) The spoken word that triggers this animation
+
+### Operations:
 - classAdd: Add CSS animation class
 - classRemove: Remove CSS class
 - layerShow: Show element (display: block)
@@ -107,15 +152,18 @@ Operations:
 - textSet: Set element's innerHTML
 
 ## RULES
-1. Every scene must have EXACT voiceover text from the audio script
-2. Timeline events must be in chronological order (t_ms ascending)
-3. Show layers BEFORE animating them
-4. Hide layers AFTER exit animations complete (~600ms later)
-5. Text content must be specified via textSet operations
+1. EVERY animation must be tied to a word in the voiceover (use "trigger" field)
+2. voiceover_segments must cover the ENTIRE audio script, split into logical phrases
+3. Timeline events must be in chronological order (t_ms ascending)
+4. Show layers BEFORE animating them
+5. Hide layers AFTER exit animations complete (~600ms later)
+6. On-screen text should MATCH or reinforce the voiceover
+7. Estimate ~400ms per word for timing
 
-Respond with a JSON object:
-- "video_script_md": string (detailed markdown per format above)
-- "timeline": object (the timeline JSON)
+## OUTPUT
+Respond with a JSON object containing:
+- "video_script_md": string (detailed markdown with voiceover tables)
+- "timeline": object (timeline JSON with voiceover_segments and events)
 """
 
     user_prompt = f"""Audio script:
