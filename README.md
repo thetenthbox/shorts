@@ -41,19 +41,21 @@ shorts --id my_first_short --audio audio_scripts/audio_script1.md --duration 30
 ## How It Works
 
 ```
-Audio Script ─┬─► Stage B: Storyboard (GPT-5)
-              │       ├── video_script.md      (voiceover timing tables)
-              │       └── timeline.json        (animation events)
+Audio Script ─┬─► Stage D0: TTS + Timestamps (Cartesia Sonic 3)
+              │       ├── renders/<id>.wav
+              │       ├── runs/<id>/tts_words.json
+              │       └── runs/<id>/voiceover_segments.json
               │
-              ├─► Stage B2: Detail Pass (GPT-5)
-              │       ├── detailed_script.md   (natural language descriptions)
-              │       └── refined_timeline.json
+              ├─► Stage B: Storyboard (GPT-5, timestamp-driven)
+              │       ├── video_script.md      (voiceover timing tables)
+              │       └── timeline.json        (events using the authoritative timestamps)
+              │
+              ├─► Stage B2: Detail Pass (GPT-5, visual-only)
+              │       ├── detailed_script.md   (visual descriptions/specs)
+              │       └── refined_timeline.json (must not change timing)
               │
               ├─► Stage C: Scene Builder (Sonnet 4.5)
               │       └── scene.html           (runnable animation)
-              │
-              ├─► Stage D: TTS (Cartesia Sonic 3)
-              │       └── voiceover.wav
               │
               └─► Stage E: Render (Playwright + ffmpeg)
                       └── final.mp4
@@ -71,7 +73,12 @@ Audio Script ─┬─► Stage B: Storyboard (GPT-5)
 
 ### Key Concept: Voiceover-Driven Timing
 
-The entire animation is synced to the voiceover. Stage B produces timing tables like:
+The entire animation is synced to the voiceover.
+
+Stage **D0** (Cartesia) produces word-level timestamps, which we convert into `voiceover_segments` (authoritative timing).
+Stage **B** then builds the animation timeline using those timestamps.
+
+Example voiceover timing table:
 
 ```markdown
 | Time | Words |
@@ -81,7 +88,7 @@ The entire animation is synced to the voiceover. Stage B produces timing tables 
 | 2.8s - 4.0s | "on Wall Street." |
 ```
 
-And animation triggers tied to specific words:
+And animation triggers tied to specific words/phrases:
 
 ```json
 {"t_ms": 2800, "op": "textSet", "target": "titleText", "value": "WALL STREET", "trigger": "Wall Street"}
@@ -176,6 +183,8 @@ Shorts/
 ├── runs/                     # Pipeline run outputs (gitignored)
 │   └── <run_id>/
 │       ├── audio_script.md       # Input script (copied)
+│       ├── tts_words.json        # Stage D0: word timestamps (optional)
+│       ├── voiceover_segments.json # Stage D0: derived segments (optional)
 │       ├── video_script.md       # Stage B: voiceover timing tables
 │       ├── timeline.json         # Stage B: animation events
 │       ├── detailed_script.md    # Stage B2: natural language descriptions
