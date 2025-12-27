@@ -24,14 +24,13 @@ class CartesiaTTS:
         voice_id: str,
         out_wav_path: Path,
         model: str = "sonic-3",
-        sample_rate_hz: int = 24000,
+        sample_rate_hz: int = 44100,
     ) -> Path:
         out_wav_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Best-effort API shape; keep overridable via base_url for future adjustments.
-        # Endpoint is commonly documented as /tts/bytes in Cartesia examples.
         url = f"{self.base_url}/tts/bytes"
         headers = {
+            "Cartesia-Version": "2025-04-16",
             "X-API-Key": self.api_key,
             "Content-Type": "application/json",
         }
@@ -44,6 +43,8 @@ class CartesiaTTS:
                 "encoding": "pcm_s16le",
                 "sample_rate": sample_rate_hz,
             },
+            "speed": "normal",
+            "generation_config": {"speed": 1, "volume": 1},
         }
 
         with httpx.Client(timeout=120.0) as client:
