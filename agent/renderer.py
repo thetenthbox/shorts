@@ -79,6 +79,7 @@ def capture_frames_playwright(
     fps: int = 30,
     width: int = 1080,
     height: int = 1920,
+    selector: str = ".shorts-container",
 ) -> int:
     """Capture frames from HTML animation using Playwright.
     
@@ -109,10 +110,34 @@ def capture_frames_playwright(
             if play_btn.count() > 0:
                 play_btn.first.click()
         
+        # Prefer capturing only the animation container (not the whole DOM/page UI).
+        # Fall back to full-page screenshots if selector isn't found.
+        locator = page.locator(selector)
+        use_locator = locator.count() > 0
+        if use_locator:
+            # Ensure stable bounding box (wait for it to exist)
+            locator.first.wait_for(state="visible", timeout=10_000)
+            # Ensure the container is captured at the true 1080x1920 size.
+            # Many scenes visually scale the container for desktop preview (e.g., transform: scale(0.4)).
+            page.evaluate(
+                """
+                (sel) => {
+                  const el = document.querySelector(sel);
+                  if (!el) return;
+                  el.style.transform = 'none';
+                  el.style.transformOrigin = 'top left';
+                }
+                """,
+                selector,
+            )
+
         # Capture frames
         for i in range(total_frames):
             frame_path = frames_dir / f"frame_{i:06d}.png"
-            page.screenshot(path=str(frame_path))
+            if use_locator:
+                locator.first.screenshot(path=str(frame_path))
+            else:
+                page.screenshot(path=str(frame_path))
             time.sleep(frame_interval_ms / 1000)
         
         browser.close()

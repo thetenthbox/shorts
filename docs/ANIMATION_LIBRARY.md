@@ -4,17 +4,115 @@ A catalog of CSS animations for Shorts production.
 
 ---
 
+## ⚠️ CRITICAL: Transform Conflicts
+
+**CSS `transform` is NOT additive — it completely REPLACES any existing transform.**
+
+If an element uses `transform: translateX(-50%)` for horizontal centering, applying a standard animation will BREAK the centering:
+
+```css
+/* ❌ BAD - This breaks centering! */
+.centered-element {
+  left: 50%;
+  transform: translateX(-50%);  /* Centering */
+}
+
+@keyframes fadeUp {
+  0% { transform: translateY(20px); }   /* Overwrites translateX(-50%)! */
+  100% { transform: translateY(0); }    /* Element jumps to left edge */
+}
+```
+
+**Solution: Use CENTERED variants that preserve the centering transform:**
+
+```css
+/* ✅ GOOD - Preserves centering */
+@keyframes fadeUpCenteredX {
+  0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes fadeUpCentered {
+  0% { opacity: 0; transform: translate(-50%, -50%) translateY(20px); }
+  100% { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
+}
+
+@keyframes popInCenteredX {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+@keyframes popInCentered {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+```
+
+### When to use which variant:
+
+| Element Centering | Use Animation |
+|-------------------|---------------|
+| No transform centering | `fadeUp`, `popIn` (standard) |
+| `transform: translateX(-50%)` | `fadeUpCenteredX`, `popInCenteredX` |
+| `transform: translate(-50%, -50%)` | `fadeUpCentered`, `popInCentered` |
+
+---
+
+## Reset & Display Rules
+
+### Resetting Elements
+
+```javascript
+// ❌ BAD - 'none' blocks future animations
+el.style.animation = 'none';
+
+// ✅ GOOD - Empty string allows new animations
+el.style.animation = '';
+el.style.transform = '';  // Also clear inline transform
+```
+
+### Show Before Animate
+
+```javascript
+// ❌ BAD - Animation runs while element is hidden
+el.style.animation = 'fadeUp 0.4s ease-out forwards';
+
+// ✅ GOOD - Show first, then animate
+el.style.display = 'block';
+el.style.animation = 'fadeUp 0.4s ease-out forwards';
+```
+
+### Hide After FadeOut
+
+```javascript
+// ❌ BAD - Instant hide causes flash
+el.style.display = 'none';
+
+// ✅ GOOD - Animate out, then hide
+el.style.animation = 'fadeOut 0.4s ease-out forwards';
+setTimeout(() => {
+  el.style.display = 'none';
+}, 400);  // Wait for animation to complete
+```
+
+---
+
 ## Quick Reference
 
 | Animation | Effect | Duration | Use Case |
 |-----------|--------|----------|----------|
 | `fadeUp` | Rise + fade in | 0.4-0.5s | Text, cards, general elements |
+| `fadeUpCenteredX` | Rise + fade (preserves X centering) | 0.4-0.5s | Centered titles, subtitles |
+| `fadeUpCentered` | Rise + fade (preserves XY centering) | 0.4-0.5s | Centered overlays, modals |
 | `popIn` | Scale bounce | 0.25s | MCQ options, buttons |
+| `popInCenteredX` | Scale bounce (preserves X centering) | 0.25s | Centered badges |
+| `popInCentered` | Scale bounce (preserves XY centering) | 0.25s | Centered cards |
 | `zoomOut` | Magnify from small | 0.5s | Callout cells, highlights |
 | `slideOutDown` | Exit downward | 0.6s | Image/panel reveals |
 | `slideOutRight` | Exit rightward | 0.6s | Panel transitions |
 | `panRight` | Ken Burns pan | 2.5s | Background images |
 | `swipe-out` | Slide left + fade | 0.5s | Clear screen transitions |
+| `fadeOut` | Fade to invisible | 0.3-0.4s | Exit animations |
 
 ---
 
@@ -205,6 +303,69 @@ Slow pan and zoom for background images.
 **Best for:** Opening shots, cinematic backgrounds
 
 **Note:** Image needs to be wider than container (200%) to allow pan room.
+
+---
+
+### fadeOut
+
+Simple fade to invisible for exit animations.
+
+```css
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+```
+
+**Usage:**
+```javascript
+el.style.animation = 'fadeOut 0.4s ease-out forwards';
+setTimeout(() => {
+  el.style.display = 'none';
+}, 400);
+```
+
+**Best for:** Smooth exits before hiding elements
+
+---
+
+### Centered Animation Variants
+
+For elements using `transform` for centering:
+
+```css
+/* For elements with transform: translateX(-50%) */
+@keyframes fadeUpCenteredX {
+  0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes popInCenteredX {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+/* For elements with transform: translate(-50%, -50%) */
+@keyframes fadeUpCentered {
+  0% { opacity: 0; transform: translate(-50%, calc(-50% + 20px)); }
+  100% { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@keyframes popInCentered {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes shakeContainerCentered {
+  0%, 100% { transform: translate(-50%, -50%); }
+  25% { transform: translate(calc(-50% - 5px), -50%); }
+  75% { transform: translate(calc(-50% + 5px), -50%); }
+}
+```
 
 ---
 

@@ -4,6 +4,62 @@ Reusable HTML/CSS components for Shorts production.
 
 ---
 
+## ⚠️ Centering Best Practices
+
+**Problem**: Using `transform` for centering conflicts with animations (see ANIMATION_LIBRARY.md).
+
+### Option 1: Flexbox Centering (RECOMMENDED)
+
+No transform conflicts — works with all standard animations:
+
+```css
+.centered-container {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.centered-content {
+  /* Can use fadeUp, popIn directly */
+  animation: fadeUp 0.4s ease-out forwards;
+}
+```
+
+### Option 2: Transform Centering (use with CENTERED animations)
+
+If you must use transform centering, use matching animation variants:
+
+```css
+/* Element with translateX(-50%) centering */
+.title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+/* Use: fadeUpCenteredX, popInCenteredX */
+
+/* Element with translate(-50%, -50%) centering */
+.modal {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+/* Use: fadeUpCentered, popInCentered */
+```
+
+### Centering Reference Table
+
+| Centering Method | Animation to Use |
+|------------------|------------------|
+| Flexbox (`display: flex`) | Standard: `fadeUp`, `popIn` |
+| `transform: translateX(-50%)` | `fadeUpCenteredX`, `popInCenteredX` |
+| `transform: translate(-50%, -50%)` | `fadeUpCentered`, `popInCentered` |
+
+---
+
 ## Brand Colors
 
 ```css

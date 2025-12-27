@@ -97,16 +97,33 @@ Each scene should cover ONE logical unit of the script:
 6. **CTA** (45-50s): Call to action, branding
 
 ## CRITICAL: SCENE TRANSITIONS
+
 **BEFORE showing a new scene, you MUST hide the previous scene's elements.**
+**TIMING: fadeOut animation takes 400ms. layerHide must come AFTER the animation completes.**
 
-Example transition from HOOK to PROBLEM:
-1. (5.5s) Add exit animation to HOOK elements: `classAdd → slideOutDown`
-2. (6.1s) Hide HOOK elements: `layerHide → wallstreetContainer, titleText`
-3. (6.1s) Show PROBLEM elements: `layerShow → spreadsheet`
+Example transition from HOOK to PROBLEM (scene ends at 6.0s):
+```
+// Step 1: Start fadeOut 400ms BEFORE transition
+{"t_ms": 5600, "op": "classAdd", "target": "wallstreetContainer", "value": "fadeOut"},
+{"t_ms": 5600, "op": "classAdd", "target": "titleText", "value": "fadeOut"},
 
-**Every scene must end with layerHide events for ALL its elements before the next scene begins.**
+// Step 2: Hide elements AT transition point (after fadeOut completes)
+{"t_ms": 6000, "op": "layerHide", "target": "wallstreetContainer"},
+{"t_ms": 6000, "op": "layerHide", "target": "titleText"},
+
+// Step 3: Show new scene elements
+{"t_ms": 6000, "op": "layerShow", "target": "spreadsheet"},
+{"t_ms": 6000, "op": "classAdd", "target": "spreadsheet", "value": "popIn"}
+```
+
+**Every scene must end with:**
+1. fadeOut animation (classAdd → fadeOut) 400ms before transition
+2. layerHide at the transition point
+3. Then layerShow for next scene's elements
 
 ## AVAILABLE ANIMATIONS
+
+### Standard (for non-centered elements):
 - fadeUp: fade in from below (0.5s)
 - popIn: pop/scale in (0.25s)
 - zoomOut: zoom out magnify effect (0.5s)
@@ -114,7 +131,16 @@ Example transition from HOOK to PROBLEM:
 - slideOutRight: slide right and exit (0.6s)
 - swipe-out: swipe left and fade (0.5s)
 - panRight: Ken Burns pan effect (2.5s)
-- animate-exit: generic exit
+- fadeOut: fade to invisible (0.4s)
+
+### Centered variants (for elements using transform centering):
+- fadeUpCenteredX: for elements with transform: translateX(-50%)
+- fadeUpCentered: for elements with transform: translate(-50%, -50%)
+- popInCenteredX: for elements with transform: translateX(-50%)
+- popInCentered: for elements with transform: translate(-50%, -50%)
+
+**IMPORTANT**: If an element uses `left: 50%; transform: translateX(-50%)` for centering,
+you MUST use the CenteredX variants, otherwise the animation will break the centering!
 
 ## AVAILABLE COMPONENTS
 - wallstreetContainer, bluePanel: intro layers
@@ -181,13 +207,15 @@ Example transition from HOOK to PROBLEM:
 1. EVERY animation must be tied to a word in the voiceover (use "trigger" field)
 2. voiceover_segments must cover the ENTIRE audio script, split into logical phrases
 3. Timeline events must be in chronological order (t_ms ascending)
-4. Show layers BEFORE animating them
+4. Show layers BEFORE animating them (layerShow, then classAdd)
 5. **CRITICAL: Before showing a new scene, HIDE all elements from the previous scene**
-   - Add fadeOut animation 500ms before transition
-   - Add layerHide at the transition point
+   - Add fadeOut animation 400ms before transition
+   - Add layerHide at the transition point (after fadeOut completes)
 6. On-screen text should MATCH or reinforce the voiceover
 7. Estimate ~400ms per word for timing
 8. Each scene should have CLEAR boundaries: show → animate → exit → hide
+9. **CRITICAL: For centered elements (using transform: translateX(-50%) or translate(-50%, -50%)),
+   use the Centered animation variants (fadeUpCenteredX, popInCentered, etc.)**
 
 ## OUTPUT
 Respond with a JSON object containing:
@@ -324,9 +352,14 @@ At 7.5s, the entire spreadsheet and all badges fade out together over 400ms, pre
 ## RULES
 1. Background is ALWAYS white (#ffffff) with grey plus-pattern
 2. Write 150-200 words per scene description — be DETAILED about timing and motion
-3. Animations: fadeUp, popIn, zoomOut, swipe-out, fade
-4. Text: CMU Serif for body, system-ui for badges
-5. Colors: #1f2937 (dark text), #1e40af (blue accent), #ffffff (white), #e5e7eb (light grey)
+3. Animations: fadeUp, popIn, zoomOut, swipe-out, fadeOut
+4. **For centered elements**: Use fadeUpCenteredX, popInCenteredX (preserves centering)
+5. Text: CMU Serif for body, system-ui for badges
+6. Colors: #1f2937 (dark text), #1e40af (blue accent), #ffffff (white), #e5e7eb (light grey)
+7. **Specify centering method for each element**: 
+   - "centered with flexbox" → use standard animations
+   - "centered with transform: translateX(-50%)" → use CenteredX animations
+   - "centered with transform: translate(-50%, -50%)" → use Centered animations
 
 ## OUTPUT
 Return JSON with:
@@ -401,19 +434,94 @@ Your job:
 3. Add a `window.__shortsPlayAll()` function that executes the timeline events
 4. The function should use setTimeout to trigger events at the specified times
 
-The __shortsPlayAll function should:
-- Reset all elements to initial state (opacity: 0, display: none for layers)
-- Execute each event at its t_ms time using setTimeout
-- Support these operations:
-  * classAdd: el.classList.add(value) or el.style.animation = 'animationName ...'
-  * classRemove: el.classList.remove(value)
-  * layerShow: el.style.display = 'block' or 'flex'; el.style.opacity = '1'
-  * layerHide: el.style.opacity = '0'; then el.style.display = 'none'
-  * textSet: el.textContent = value or el.innerHTML = value
+## CRITICAL: RESET FUNCTION RULES
 
-**CRITICAL: Scene transitions require hiding previous elements.**
-When you see layerHide events in the timeline, you MUST implement them.
-Elements should fade out before being hidden to avoid jarring transitions.
+The __shortsPlayAll reset MUST:
+```javascript
+allElementIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  
+  // ✅ Use empty string, NOT 'none' (which blocks future animations)
+  el.style.animation = '';
+  el.style.opacity = '';
+  el.style.display = '';
+  el.style.transform = '';
+  
+  // Remove any animation classes that might persist
+  el.className = el.className.split(' ').filter(c => 
+    !c.includes('fadeUp') && !c.includes('popIn') && !c.includes('fadeOut') && 
+    !c.includes('animate') && !c.includes('active')
+  ).join(' ');
+});
+```
+
+## CRITICAL: TRANSFORM CENTERING CONFLICTS
+
+CSS `transform` is NOT additive — animations OVERWRITE existing transforms!
+
+If element uses `transform: translateX(-50%)` for centering:
+- ❌ DON'T use: `fadeUp` (breaks centering)
+- ✅ DO use: `fadeUpCenteredX` (preserves centering)
+
+If element uses `transform: translate(-50%, -50%)` for centering:
+- ❌ DON'T use: `fadeUp`, `popIn` (breaks centering)
+- ✅ DO use: `fadeUpCentered`, `popInCentered` (preserves centering)
+
+Define these centered keyframes in your CSS:
+```css
+@keyframes fadeUpCenteredX {
+  0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes popInCenteredX {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+@keyframes fadeUpCentered {
+  0% { opacity: 0; transform: translate(-50%, calc(-50% + 20px)); }
+  100% { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@keyframes popInCentered {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+```
+
+## CRITICAL: SHOW BEFORE ANIMATE
+
+```javascript
+// ❌ BAD - Element stays hidden
+el.style.animation = 'fadeUp 0.4s ease-out forwards';
+
+// ✅ GOOD - Show first, then animate
+el.style.display = 'block';
+el.style.animation = 'fadeUp 0.4s ease-out forwards';
+```
+
+## CRITICAL: HIDE AFTER FADEOUT
+
+```javascript
+// ❌ BAD - Instant hide causes flash
+el.style.display = 'none';
+
+// ✅ GOOD - Animate out, THEN hide after delay
+el.style.animation = 'fadeOut 0.4s ease-out forwards';
+setTimeout(() => {
+  el.style.display = 'none';
+}, 400);
+```
+
+## OPERATIONS
+
+- classAdd: el.style.animation = 'animationName 0.4s ease-out forwards'
+- classRemove: el.classList.remove(value)
+- layerShow: el.style.display = 'block'; (for centered: keep existing transform)
+- layerHide: el.style.animation = 'fadeOut...'; setTimeout → display = 'none'
+- textSet: el.textContent = value or el.innerHTML = value
 
 Return a JSON object with:
 - "html": the complete HTML string
@@ -454,7 +562,7 @@ Generate the complete HTML with __shortsPlayAll() function. Follow the detailed 
 
     # Allow larger outputs for HTML generation.
     # Set OPENROUTER_MAX_TOKENS_HTML=120000 (or similar) to request more output.
-    max_tokens_html = int(os.getenv("OPENROUTER_MAX_TOKENS_HTML", "16000"))
+    max_tokens_html = int(os.getenv("OPENROUTER_MAX_TOKENS_HTML", "12000"))
     try:
         resp = client.chat(
             model=OPENROUTER_MODEL_HTML,
@@ -541,4 +649,28 @@ def load_component_library(shorts_dir: Path) -> str:
     if lib.exists():
         return lib.read_text(encoding="utf-8")
     return ""
+
+
+# =============================================================================
+# PROMPT ENGINEERING NOTES (for maintainers)
+# =============================================================================
+#
+# Key issues fixed in prompts:
+#
+# 1. TRANSFORM CONFLICTS: CSS transform is NOT additive. Elements using
+#    transform: translateX(-50%) for centering need special animation variants
+#    (fadeUpCenteredX, popInCenteredX) that preserve the centering transform.
+#
+# 2. RESET RULES: Don't use style.animation = 'none' (blocks future animations).
+#    Use empty string '' instead. Also clear style.transform.
+#
+# 3. SHOW BEFORE ANIMATE: Must set display = 'block' BEFORE setting animation,
+#    otherwise the animation runs while element is hidden.
+#
+# 4. HIDE AFTER FADEOUT: Must wait for fadeOut animation to complete (400ms)
+#    before setting display = 'none', otherwise causes visual flash.
+#
+# 5. TRANSITION TIMING: fadeOut should start 400ms before scene transition,
+#    then layerHide at the transition point.
+# =============================================================================
 
