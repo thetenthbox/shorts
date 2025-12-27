@@ -565,6 +565,36 @@ setTimeout(() => {
 }, 400);
 ```
 
+## MANDATORY: CHECK CENTERING BEFORE EACH ANIMATION
+
+For EVERY animation you write, you MUST check the element's CSS transform:
+
+1. Find the element's `transform` property in CSS
+2. If transform includes `translateX(-50%)`: use CenteredX variant
+3. If transform includes `translate(-50%, -50%)`: use Centered variant  
+4. Only use standard fadeUp/popIn if NO centering transform exists
+
+**Example check process:**
+```
+#realityLayer { 
+  transform: translate(-50%, -50%);  // ← Has centering!
+}
+→ MUST use fadeUpCentered, NOT fadeUp
+
+#spreadsheet {
+  transform: translateX(-50%);  // ← Has X centering!
+}
+→ MUST use popInCenteredX, NOT popIn
+
+#bullet1 {
+  // No transform centering
+}
+→ Can use standard fadeUp
+```
+
+**COMMON MISTAKE**: Defining centered keyframes but then forgetting to USE them.
+Check EVERY setTimeout animation call against the element's CSS.
+
 ## OPERATIONS
 
 - classAdd: el.style.animation = 'animationName 0.4s ease-out forwards'

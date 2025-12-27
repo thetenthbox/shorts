@@ -44,7 +44,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--skip-render", action="store_true", help="Skip frame capture and MP4 render")
     p.add_argument("--render-only", action="store_true", help="Only render MP4 from existing scene.html")
     p.add_argument("--rebuild-html", action="store_true", help="Rebuild scene.html from existing detailed_script + timeline")
-    p.add_argument("--debug", action="store_true", help="Add debug overlay showing timer + current script line")
+    # Debug overlay is ON by default (shows timer + current script line).
+    p.add_argument("--debug", dest="debug", action="store_true", default=True, help="Enable debug overlay (default: on)")
+    p.add_argument("--no-debug", dest="debug", action="store_false", help="Disable debug overlay")
     p.add_argument("--duration", type=int, default=60, help="Target duration in seconds")
     return p
 

@@ -123,7 +123,8 @@ shorts --id <run_id> --audio <path> [options]
 | `--skip-render` | false | Skip Playwright/ffmpeg rendering |
 | `--render-only` | false | Only render MP4 from existing `runs/<id>/scene.html` |
 | `--rebuild-html` | false | Rebuild `runs/<id>/scene.html` from existing `detailed_script.md` + timeline |
-| `--debug` | false | Add debug overlay (timer + current script line) |
+| `--debug` | true | Enable debug overlay (timer + current script line) |
+| `--no-debug` | false | Disable debug overlay |
 
 ### Examples
 
@@ -143,8 +144,11 @@ shorts --id demo --render-only
 # Rebuild HTML (from detailed_script + timeline) and render
 shorts --id demo --rebuild-html
 
-# Rebuild HTML with debug overlay (no render)
-shorts --id demo --rebuild-html --skip-render --debug
+# Rebuild HTML (no render) with debug overlay (default-on)
+shorts --id demo --rebuild-html --skip-render
+
+# Disable debug overlay
+shorts --id demo --rebuild-html --skip-render --no-debug
 ```
 
 ---
