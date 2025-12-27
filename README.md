@@ -114,6 +114,8 @@ shorts --id <run_id> --audio <path> [options]
 | `--skip-tts` | false | Skip voiceover generation |
 | `--skip-render` | false | Skip Playwright/ffmpeg rendering |
 | `--render-only` | false | Only render MP4 from existing `runs/<id>/scene.html` |
+| `--rebuild-html` | false | Rebuild `runs/<id>/scene.html` from existing `detailed_script.md` + timeline |
+| `--debug` | false | Add debug overlay (timer + current script line) |
 
 ### Examples
 
@@ -129,6 +131,12 @@ shorts --id demo --audio audio_scripts/audio_script1.md --skip-render
 
 # Re-render after editing scene.html manually
 shorts --id demo --render-only
+
+# Rebuild HTML (from detailed_script + timeline) and render
+shorts --id demo --rebuild-html
+
+# Rebuild HTML with debug overlay (no render)
+shorts --id demo --rebuild-html --skip-render --debug
 ```
 
 ---
@@ -149,13 +157,6 @@ Shorts/
 │
 ├── audio_scripts/            # Input: voiceover scripts
 │   └── audio_script1.md
-│
-├── scripts/                  # Video scripts (timed animation plans)
-│   └── video_script1.md
-│
-├── scenes/                   # Runnable HTML scenes (manual builds)
-│   ├── scene1.html
-│   └── ib_model_critique.html
 │
 ├── templates/                # Starting points for new scenes
 │   ├── base.html             # Boilerplate HTML template
@@ -241,15 +242,15 @@ What do you do?
 
 ### 2. Create Video Script
 
-Create `scripts/my_script.md` with timed animation events.
+Create a rough video plan (timing + what appears) in any markdown file. The pipeline will generate `runs/<id>/video_script.md` and `runs/<id>/timeline.json` automatically when you run it with API keys.
 
 ### 3. Build HTML Scene
 
-Copy `templates/base.html` to `scenes/my_scene.html` and add your content.
+Copy `templates/base.html` to `runs/my_manual/scene.html` and add your content.
 
 ### 4. Preview in Browser
 
-Open `scenes/my_scene.html` in Chrome:
+Open `runs/my_manual/scene.html` in Chrome:
 - **▶ Play All** — run full timeline
 - **1x / 3x** — toggle speed
 - Side buttons — jump to sections

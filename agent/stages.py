@@ -128,7 +128,7 @@ Example transition from HOOK to PROBLEM:
 
 ## TIMELINE JSON FORMAT
 {
-  "duration_ms": 30000,
+  "duration_ms": <total duration in milliseconds>,
   "fps": 30,
   "voiceover_segments": [
     {"start_ms": 0, "end_ms": 1200, "text": "Let's say you're working"},
@@ -136,23 +136,31 @@ Example transition from HOOK to PROBLEM:
     {"start_ms": 2800, "end_ms": 4000, "text": "on Wall Street."}
   ],
   "events": [
+    // SCENE 1: HOOK (0-6s)
     {"t_ms": 0, "op": "layerShow", "target": "wallstreetContainer", "trigger": "Let's"},
     {"t_ms": 0, "op": "classAdd", "target": "wallstreetImg", "value": "panRight"},
     {"t_ms": 2800, "op": "layerShow", "target": "titleText"},
     {"t_ms": 2800, "op": "classAdd", "target": "titleText", "value": "fadeUp", "trigger": "Wall Street"},
+    
+    // TRANSITION: Hide HOOK before PROBLEM
     {"t_ms": 5500, "op": "classAdd", "target": "wallstreetContainer", "value": "fadeOut"},
     {"t_ms": 5500, "op": "classAdd", "target": "titleText", "value": "fadeOut"},
     {"t_ms": 6000, "op": "layerHide", "target": "wallstreetContainer"},
     {"t_ms": 6000, "op": "layerHide", "target": "titleText"},
+    
+    // SCENE 2: PROBLEM (6-12s)
     {"t_ms": 6000, "op": "layerShow", "target": "spreadsheet", "trigger": "ripping"},
     {"t_ms": 6000, "op": "classAdd", "target": "spreadsheet", "value": "popIn"},
+    
+    // TRANSITION: Hide PROBLEM before OPTIONS
     {"t_ms": 11500, "op": "classAdd", "target": "spreadsheet", "value": "fadeOut"},
     {"t_ms": 12000, "op": "layerHide", "target": "spreadsheet"},
+    
+    // SCENE 3: OPTIONS (12-18s)
     {"t_ms": 12000, "op": "layerShow", "target": "mcqContainer"}
+    // ... and so on
   ]
 }
-
-Note: Events show pattern of SHOW → ANIMATE → FADEOUT → HIDE for each scene transition.
 
 ### Event Fields:
 - t_ms: Timestamp in milliseconds
@@ -478,406 +486,6 @@ Generate the complete HTML with __shortsPlayAll() function. Follow the detailed 
         html=data.get("html", ""),
         scene_spec=data.get("scene_spec", {}),
     )
-
-
-@dataclass
-class SceneChunk:
-    """A single scene's generated content."""
-    scene_id: str
-    elements_html: str
-    css: str
-    js_timeouts: str
-    element_ids: List[str]
-
-
-def _prefix_scene_ids(*, scene_id: str, chunk: SceneChunk) -> SceneChunk:
-    """Prefix all element IDs in a chunk to avoid collisions when merging scenes.
-
-    This is a best-effort string rewrite for:
-    - HTML id="..."
-    - CSS selectors #id
-    - JS getElementById('id') / querySelector('#id')
-    - Quoted occurrences 'id' / "id"
-    """
-    prefix = f"{scene_id}__"
-
-    # Build mapping old_id -> new_id
-    mapping: Dict[str, str] = {}
-    for old in chunk.element_ids:
-        if not old:
-            continue
-        if old.startswith(prefix):
-            mapping[old] = old
-        else:
-            mapping[old] = prefix + old
-
-    if not mapping:
-        return chunk
-
-    import re
-
-    def replace_all(s: str) -> str:
-        if not s:
-            return s
-        out = s
-        # Replace longer ids first to reduce partial collisions.
-        for old, new in sorted(mapping.items(), key=lambda kv: len(kv[0]), reverse=True):
-            # id="old"
-            out = re.sub(rf'(\bid\s*=\s*["\']){re.escape(old)}(["\'])', rf"\g<1>{new}\2", out)
-            # #old selectors
-            out = re.sub(rf'#{re.escape(old)}\b', f"#{new}", out)
-            # getElementById('old') or querySelector('#old') etc (quoted token)
-            out = re.sub(rf'(["\']){re.escape(old)}\1', rf'\1{new}\1', out)
-        return out
-
-    new_elements = replace_all(chunk.elements_html)
-    new_css = replace_all(chunk.css)
-    new_js = replace_all(chunk.js_timeouts)
-    new_ids = [mapping.get(x, x) for x in chunk.element_ids]
-
-    return SceneChunk(
-        scene_id=chunk.scene_id,
-        elements_html=new_elements,
-        css=new_css,
-        js_timeouts=new_js,
-        element_ids=new_ids,
-    )
-
-
-def parse_scene_boundaries(detailed_script: str) -> List[Dict[str, Any]]:
-    """Parse scene boundaries from detailed script markdown."""
-    import re
-    scenes = []
-    # Match "## SCENE N: NAME (start - end)"
-    pattern = r'## SCENE (\d+): ([^\(]+)\((\d+\.?\d*)s\s*-\s*(\d+\.?\d*)s\)'
-    matches = re.findall(pattern, detailed_script)
-    
-    for match in matches:
-        scene_num, name, start_s, end_s = match
-        scenes.append({
-            "id": f"scene{scene_num}",
-            "name": name.strip(),
-            "start_ms": int(float(start_s) * 1000),
-            "end_ms": int(float(end_s) * 1000),
-        })
-    
-    return scenes
-
-
-def split_events_by_scene(events: List[Dict], scene_boundaries: List[Dict]) -> Dict[str, List[Dict]]:
-    """Split timeline events into scene-specific groups."""
-    scene_events = {s["id"]: [] for s in scene_boundaries}
-    
-    for event in events:
-        t_ms = event.get("t_ms", 0)
-        # Find which scene this event belongs to
-        for scene in scene_boundaries:
-            if scene["start_ms"] <= t_ms < scene["end_ms"]:
-                scene_events[scene["id"]].append(event)
-                break
-        else:
-            # Event after last scene - add to last scene
-            if scene_boundaries:
-                scene_events[scene_boundaries[-1]["id"]].append(event)
-    
-    return scene_events
-
-
-def extract_scene_from_detailed_script(detailed_script: str, scene_id: str) -> str:
-    """Extract just one scene's content from the detailed script."""
-    import re
-    scene_num = scene_id.replace("scene", "")
-    # Find this scene's section
-    pattern = rf'(## SCENE {scene_num}:.*?)(?=## SCENE \d+:|$)'
-    match = re.search(pattern, detailed_script, re.DOTALL)
-    return match.group(1) if match else ""
-
-
-def stage_scene_builder_by_scene(
-    *,
-    client: OpenRouterClient,
-    timeline: Dict[str, Any],
-    detailed_script: str,
-    animation_library: str,
-    component_library: str,
-) -> SceneBuildResult:
-    """Stage C: Build HTML scene-by-scene, then merge."""
-    
-    # Parse scene boundaries from detailed script
-    scene_boundaries = parse_scene_boundaries(detailed_script)
-    if not scene_boundaries:
-        # Fallback: treat as single scene
-        scene_boundaries = [{"id": "scene1", "name": "Main", "start_ms": 0, "end_ms": timeline.get("duration_ms", 30000)}]
-    
-    # Split events by scene
-    events = timeline.get("events", [])
-    scene_events = split_events_by_scene(events, scene_boundaries)
-    
-    print(f"  Building {len(scene_boundaries)} scenes...")
-    
-    scene_system_prompt = """You are an HTML/CSS/JS generator for a single scene of a short video.
-
-Generate ONLY the components needed for THIS SCENE:
-1. HTML elements (divs, tables, etc.) with unique IDs
-2. CSS styles for these elements
-3. JavaScript setTimeout calls for the animation events
-
-Output JSON with:
-- "elements_html": HTML string for elements inside the container
-- "css": CSS styles for this scene's elements
-- "js_timeouts": JavaScript setTimeout calls (just the setTimeout lines, no function wrapper)
-- "element_ids": list of element IDs created
-
-Style requirements:
-- White background with grey plus-pattern
-- CMU Serif for body text, system-ui for badges
-- Colors: #1f2937 (dark text), #1e40af (blue accent), #e5e7eb (light grey)
-- All elements start with opacity: 0 or display: none
-
-CRITICAL ID RULE:
-- IDs MUST be unique across the entire video.
-- For this scene, prefix EVERY element id with the provided SCENE_ID prefix, like: SCENE_ID__titleText
-"""
-
-    scene_chunks: List[SceneChunk] = []
-    all_element_ids = []
-    
-    for scene in scene_boundaries:
-        scene_id = scene["id"]
-        scene_name = scene["name"]
-        events_for_scene = scene_events.get(scene_id, [])
-        scene_detail = extract_scene_from_detailed_script(detailed_script, scene_id)
-        
-        if not events_for_scene:
-            continue
-        
-        print(f"    -> {scene_id}: {scene_name} ({len(events_for_scene)} events)")
-        
-        user_prompt = f"""Generate HTML/CSS/JS for: {scene_name}
-
-SCENE_ID prefix: {scene_id}
-
-Scene timing: {scene["start_ms"]}ms - {scene["end_ms"]}ms
-
-Events for this scene:
-```json
-{json.dumps(events_for_scene, indent=2)}
-```
-
-Scene description:
-{scene_detail}
-
-Animation library reference:
-{animation_library}
-
-Component patterns:
-{component_library}
-
-Return valid JSON with elements_html, css, js_timeouts, element_ids."""
-
-        try:
-            resp = client.chat(
-                model=OPENROUTER_MODEL_HTML,
-                messages=[
-                    {"role": "system", "content": scene_system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.2,
-                max_tokens=8000,
-                response_format={"type": "json_object"},
-            )
-            
-            content = resp["choices"][0]["message"]["content"].strip()
-            if content.startswith("```"):
-                content = content.split("\n", 1)[1]
-                if content.endswith("```"):
-                    content = content[:-3].strip()
-            
-            data = json.loads(content)
-            
-            chunk = SceneChunk(
-                scene_id=scene_id,
-                elements_html=data.get("elements_html", ""),
-                css=data.get("css", ""),
-                js_timeouts=data.get("js_timeouts", ""),
-                element_ids=data.get("element_ids", []),
-            )
-            # Enforce prefixing to prevent collisions when merging.
-            chunk = _prefix_scene_ids(scene_id=scene_id, chunk=chunk)
-            scene_chunks.append(chunk)
-            all_element_ids.extend(chunk.element_ids)
-            
-        except Exception as e:
-            print(f"    -> ERROR in {scene_id}: {e}")
-            continue
-    
-    # Merge all scenes
-    merged_html = merge_scene_chunks(scene_chunks, timeline, all_element_ids)
-    
-    return SceneBuildResult(
-        html=merged_html,
-        scene_spec={
-            "element_ids": all_element_ids,
-            "duration_ms": timeline.get("duration_ms", 30000),
-            "event_count": len(events),
-            "scene_count": len(scene_chunks),
-        },
-    )
-
-
-def merge_scene_chunks(chunks: List[SceneChunk], timeline: Dict, all_element_ids: List[str]) -> str:
-    """Merge scene chunks into a complete HTML file."""
-    
-    # Collect all parts
-    all_elements = "\n\n    ".join(c.elements_html for c in chunks if c.elements_html)
-    all_css = "\n\n".join(c.css for c in chunks if c.css)
-    all_timeouts = "\n      ".join(c.js_timeouts for c in chunks if c.js_timeouts)
-    
-    # Deduplicate IDs (and avoid JS 'const <id>' redeclare errors by using a loop).
-    unique_ids = sorted(set(all_element_ids))
-    ids_json = json.dumps(unique_ids)
-    reset_code = (
-        "      const __allIds = " + ids_json + ";\n"
-        "      __allIds.forEach((id) => {\n"
-        "        const el = document.getElementById(id);\n"
-        "        if (!el) return;\n"
-        "        el.style.animation = 'none';\n"
-        "        el.style.opacity = '0';\n"
-        "        // If it was a layer, hide it too.\n"
-        "        // (Scenes should explicitly show layers via events.)\n"
-        "        if (el.dataset && el.dataset.layer === 'true') {\n"
-        "          el.style.display = 'none';\n"
-        "        }\n"
-        "      });\n"
-    )
-    
-    duration_ms = timeline.get("duration_ms", 30000)
-    
-    return f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>1learner Short</title>
-  <style>
-    @import url('https://fonts.cdnfonts.com/css/cmu-serif');
-    
-    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-    
-    :root {{
-      --blue-primary: #1e3a5f;
-      --blue-accent: #1e40af;
-      --text-dark: #1f2937;
-      --text-muted: #374151;
-      --bg-white: #ffffff;
-      --border-light: #e5e7eb;
-    }}
-    
-    body {{
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: #1a1a1a;
-      font-family: system-ui, -apple-system, sans-serif;
-    }}
-    
-    .shorts-container {{
-      width: 1080px;
-      height: 1920px;
-      position: relative;
-      overflow: hidden;
-      transform: scale(0.4);
-      transform-origin: center center;
-      background: var(--bg-white);
-    }}
-    
-    .plus-pattern {{
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background-image: 
-        linear-gradient(var(--border-light) 1px, transparent 1px),
-        linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
-      background-size: 80px 80px;
-      opacity: 0.5;
-      z-index: 0;
-    }}
-    
-    /* Base animation keyframes */
-    @keyframes fadeIn {{ to {{ opacity: 1; }} }}
-    @keyframes fadeOut {{ to {{ opacity: 0; }} }}
-    @keyframes fadeUp {{ to {{ opacity: 1; transform: translateY(0); }} }}
-    @keyframes popIn {{ to {{ opacity: 1; transform: scale(1); }} }}
-    @keyframes slideOutDown {{ to {{ opacity: 0; transform: translateY(100px); }} }}
-    @keyframes shake {{ 
-      0%, 100% {{ transform: translateX(0); }}
-      25% {{ transform: translateX(-10px); }}
-      75% {{ transform: translateX(10px); }}
-    }}
-    
-    /* Scene-specific styles */
-    {all_css}
-    
-    .controls {{
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
-      z-index: 100;
-    }}
-    
-    .btn {{
-      padding: 12px 24px;
-      font-size: 14px;
-      font-weight: 600;
-      background: var(--blue-primary);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }}
-    .btn:hover {{ transform: scale(1.05); }}
-  </style>
-</head>
-<body>
-  <div class="shorts-container">
-    <div class="plus-pattern"></div>
-    
-    {all_elements}
-  </div>
-  
-  <div class="controls">
-    <button class="btn" onclick="window.__shortsPlayAll()">▶ Play All</button>
-  </div>
-  
-  <script>
-    window.__shortsPlayAll = function() {{
-      // Reset all elements
-{reset_code}
-      
-      // Force reflow
-      void document.body.offsetWidth;
-      
-      // Timeline events
-      {all_timeouts}
-      
-      // End fade
-      setTimeout(() => {{
-        document.querySelector('.shorts-container').style.transition = 'opacity 0.3s';
-        document.querySelector('.shorts-container').style.opacity = '0';
-      }}, {duration_ms - 200});
-      
-      setTimeout(() => {{
-        document.querySelector('.shorts-container').style.opacity = '1';
-      }}, {duration_ms});
-    }};
-    
-    window.onload = () => setTimeout(() => window.__shortsPlayAll(), 500);
-  </script>
-</body>
-</html>'''
 
 
 def load_audio_script(path: Path) -> str:

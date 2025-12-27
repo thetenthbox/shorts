@@ -27,7 +27,6 @@ from .stages import (
     load_component_library,
     stage_detail_pass,
     stage_scene_builder,
-    stage_scene_builder_by_scene,
     stage_storyboard,
 )
 
@@ -45,7 +44,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--render-only", action="store_true", help="Only render MP4 from existing scene.html")
     p.add_argument("--rebuild-html", action="store_true", help="Rebuild scene.html from existing detailed_script + timeline")
     p.add_argument("--debug", action="store_true", help="Add debug overlay showing timer + current script line")
-    p.add_argument("--scene-by-scene", action="store_true", help="Build HTML scene-by-scene (better for complex animations)")
     p.add_argument("--duration", type=int, default=60, help="Target duration in seconds")
     return p
 
@@ -63,7 +61,6 @@ def run_pipeline(
     skip_tts: bool,
     skip_render: bool,
     debug: bool,
-    scene_by_scene: bool,
     duration_s: int,
 ) -> int:
     """Run the full pipeline."""
@@ -129,11 +126,8 @@ def run_pipeline(
             video_script=storyboard.video_script_md,
             timeline=storyboard.timeline,
         )
-        # Use refined timeline for scene building if it's a valid dict with events
-        if isinstance(detail_result.refined_timeline, dict) and "events" in detail_result.refined_timeline:
-            final_timeline = detail_result.refined_timeline
-        else:
-            final_timeline = storyboard.timeline
+        # Use refined timeline for scene building
+        final_timeline = detail_result.refined_timeline
     except Exception as e:
         print(f"WARNING: Detail pass failed ({e}), using original timeline", file=sys.stderr)
         detail_result = None
@@ -148,34 +142,20 @@ def run_pipeline(
         print(f"  -> Saved detailed_script.md and refined_timeline.json to {runs_dir}")
     
     # Stage C: Scene builder (timeline -> HTML)
-    if scene_by_scene:
-        print("Stage C: Building HTML scene-by-scene...")
-    else:
-        print("Stage C: Building HTML scene...")
-    
+    print("Stage C: Building HTML scene...")
     try:
+        base_html = load_base_html(shorts_dir)
         animation_lib = load_animation_library(shorts_dir)
         component_lib = load_component_library(shorts_dir)
-        detailed_script_text = detail_result.detailed_script_md if detail_result else ""
         
-        if scene_by_scene and detailed_script_text:
-            scene_result: SceneBuildResult = stage_scene_builder_by_scene(
-                client=openrouter,
-                timeline=final_timeline,
-                detailed_script=detailed_script_text,
-                animation_library=animation_lib,
-                component_library=component_lib,
-            )
-        else:
-            base_html = load_base_html(shorts_dir)
-            scene_result: SceneBuildResult = stage_scene_builder(
-                client=openrouter,
-                timeline=final_timeline,
-                base_html=base_html,
-                animation_library=animation_lib,
-                component_library=component_lib,
-                detailed_script=detailed_script_text,
-            )
+        scene_result: SceneBuildResult = stage_scene_builder(
+            client=openrouter,
+            timeline=final_timeline,
+            base_html=base_html,
+            animation_library=animation_lib,
+            component_library=component_lib,
+            detailed_script=detail_result.detailed_script_md if detail_result else "",
+        )
     except Exception as e:
         print(f"ERROR in scene builder stage: {e}", file=sys.stderr)
         return 1
@@ -424,7 +404,6 @@ def main(argv=None) -> int:
         skip_tts=args.skip_tts,
         skip_render=args.skip_render,
         debug=args.debug,
-        scene_by_scene=args.scene_by_scene,
         duration_s=args.duration,
     )
 
