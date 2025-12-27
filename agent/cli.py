@@ -18,11 +18,13 @@ from .openrouter_client import OpenRouterClient
 from .renderer import render_mp4
 from .stages import (
     StoryboardResult,
+    DetailResult,
     SceneBuildResult,
     load_animation_library,
     load_audio_script,
     load_base_html,
     load_component_library,
+    stage_detail_pass,
     stage_scene_builder,
     stage_storyboard,
 )
@@ -111,6 +113,29 @@ def run_pipeline(
     )
     print(f"  -> Saved video_script.md and timeline.json to {runs_dir}")
     
+    # Stage B2: Detail pass (polish with visual specs)
+    print("Stage B2: Adding detailed visual descriptions...")
+    try:
+        detail_result: DetailResult = stage_detail_pass(
+            client=openrouter,
+            video_script=storyboard.video_script_md,
+            timeline=storyboard.timeline,
+        )
+        # Use refined timeline for scene building
+        final_timeline = detail_result.refined_timeline
+    except Exception as e:
+        print(f"WARNING: Detail pass failed ({e}), using original timeline", file=sys.stderr)
+        detail_result = None
+        final_timeline = storyboard.timeline
+    
+    # Save detail pass outputs
+    if detail_result:
+        (runs_dir / "detailed_script.md").write_text(detail_result.detailed_script_md, encoding="utf-8")
+        (runs_dir / "refined_timeline.json").write_text(
+            json.dumps(detail_result.refined_timeline, indent=2), encoding="utf-8"
+        )
+        print(f"  -> Saved detailed_script.md and refined_timeline.json to {runs_dir}")
+    
     # Stage C: Scene builder (timeline -> HTML)
     print("Stage C: Building HTML scene...")
     try:
@@ -120,10 +145,11 @@ def run_pipeline(
         
         scene_result: SceneBuildResult = stage_scene_builder(
             client=openrouter,
-            timeline=storyboard.timeline,
+            timeline=final_timeline,
             base_html=base_html,
             animation_library=animation_lib,
             component_library=component_lib,
+            detailed_script=detail_result.detailed_script_md if detail_result else "",
         )
     except Exception as e:
         print(f"ERROR in scene builder stage: {e}", file=sys.stderr)
@@ -158,7 +184,7 @@ def run_pipeline(
     if not skip_render:
         print("Stage E: Rendering MP4...")
         try:
-            duration_ms = storyboard.timeline.get("duration_ms", duration_s * 1000)
+            duration_ms = final_timeline.get("duration_ms", duration_s * 1000)
             result = render_mp4(
                 html_path=scene_path,
                 output_dir=runs_dir,

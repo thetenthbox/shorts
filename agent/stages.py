@@ -204,6 +204,152 @@ Generate the video_script_md and timeline JSON. Return valid JSON only."""
     )
 
 
+@dataclass
+class DetailResult:
+    detailed_script_md: str
+    refined_timeline: Dict[str, Any]
+
+
+def stage_detail_pass(
+    *,
+    client: OpenRouterClient,
+    video_script: str,
+    timeline: Dict[str, Any],
+) -> DetailResult:
+    """Stage B2: Polish video script with detailed visual descriptions."""
+    
+    system_prompt = """You are a film director describing exactly what appears on screen for a short-form vertical video (1080x1920).
+
+Your job is to write a DETAILED NATURAL LANGUAGE DESCRIPTION of every visual moment, as if you're describing the video to someone who can't see it.
+
+## YOUR TASK
+For each scene, write a LENGTHY PARAGRAPH describing:
+
+1. **What the viewer sees** - Describe the visual experience moment by moment
+2. **How elements appear** - The motion, the feeling, the visual impact
+3. **Colors and atmosphere** - The mood, lighting, color palette
+4. **Text and typography** - Exactly what text appears, how it looks, where it sits
+5. **Transitions** - How one scene flows into the next
+
+## EXAMPLE OUTPUT:
+
+```markdown
+## SCENE 1: HOOK (0.0s - 6.5s)
+
+### Director's Description:
+
+The video opens on a dramatic aerial shot of Wall Street's towering skyscrapers. The image is slightly darkened with a cinematic filter, giving it weight and gravitas. The camera slowly pans from left to right, creating that classic Ken Burns documentary feel — the buildings seem to drift past as if we're in a helicopter surveying the financial district.
+
+As the narrator says "Wall Street," bold white text slams onto the screen from below. The words "WALL STREET" appear dead center, massive at 72 pixels, with a subtle drop shadow that makes them pop against the cityscape. The text is uppercase, spaced wide like a movie title, demanding attention.
+
+The image continues its slow drift for another beat, then suddenly — as the narrator mentions the "senior associate" — the entire Wall Street layer drops away. It slides downward like a curtain falling, smooth and decisive, taking about half a second. What's revealed underneath is a deep navy blue panel (#1e3a5f), solid and corporate, like we've entered the office.
+
+### Visual Elements:
+
+**Wall Street Image Layer**
+- Full-bleed photograph filling the entire 1080x1920 frame
+- Zoomed to 130% so there's room to pan
+- Brightness reduced to 80% for cinematic feel
+- Slow rightward pan over 2.5 seconds
+- Slight zoom-in happening simultaneously (1.0x to 1.1x)
+
+**"WALL STREET" Title**
+- Position: Perfectly centered (50% from top and left)
+- Font: System UI, 800 weight (extra bold)
+- Size: 72px
+- Color: Pure white (#ffffff)
+- Letter-spacing: 8px (w i d e)
+- Text-shadow: 0 4px 20px rgba(0,0,0,0.5) for depth
+- Animation: Fades up from 30px below over 500ms
+
+**Transition Out**
+- The entire wall street layer slides down
+- Duration: 600ms with ease-in-out curve
+- Reveals the blue panel waiting underneath
+
+---
+
+## SCENE 2: THE CONFLICT (6.5s - 12.0s)
+
+### Director's Description:
+
+Now we're in corporate territory. The deep blue backdrop feels cold, institutional. A white Excel-style spreadsheet materializes in the center of the screen — it pops in with a quick scale animation, starting at 80% size and snapping to 100% with a slight overshoot, like it's being slapped down on a desk.
+
+The spreadsheet has that familiar grid look: light grey borders, white cells, a header row with years 2024-2028. But something's wrong — certain cells are highlighted in angry red (#dc2626), the color of errors and warnings. These red cells pulse subtly, drawing the eye.
+
+As the narrator says "picking it apart," the spreadsheet gives a little shake — a quick left-right vibration that lasts maybe 200ms, like someone just slammed their hand on the table next to it...
+```
+
+## REQUIREMENTS
+
+1. **Be verbose** - Each scene description should be at least 150-200 words
+2. **Be specific** - Exact colors (hex codes), exact sizes (pixels), exact durations (milliseconds)
+3. **Be cinematic** - Describe the FEELING, not just the facts
+4. **Include technical specs** - After each description, list the concrete element specifications
+5. **Describe ALL motion** - Every animation, transition, and micro-interaction
+
+## REFINED TIMELINE
+Also output a refined timeline with:
+- "duration_ms" on each event
+- "easing" (e.g., "ease-out", "cubic-bezier(0.34, 1.56, 0.64, 1)")
+- "description" - a one-line human description of what this event does
+
+## COLOR PALETTE
+- Primary blue: #1e3a5f
+- Accent blue: #1e40af  
+- White: #ffffff
+- Dark text: #1f2937
+- Light grey: #f3f4f6
+- Error red: #dc2626
+- Success green: #059669
+
+## OUTPUT
+Return JSON with:
+- "detailed_script_md": lengthy markdown with director's descriptions + technical specs
+- "refined_timeline": timeline with duration_ms, easing, and description fields
+"""
+
+    user_prompt = f"""Video Script:
+
+{video_script}
+
+Timeline:
+```json
+{json.dumps(timeline, indent=2)}
+```
+
+Add precise visual specifications to every element. Return valid JSON only."""
+
+    resp = client.chat(
+        model=OPENROUTER_MODEL_SCRIPT,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.2,
+        max_tokens=8000,
+        response_format={"type": "json_object"},
+    )
+
+    content = resp["choices"][0]["message"]["content"]
+    
+    # Strip markdown code fences if present
+    content = content.strip()
+    if content.startswith("```"):
+        first_newline = content.find("\n")
+        if first_newline != -1:
+            content = content[first_newline + 1:]
+        if content.endswith("```"):
+            content = content[:-3].strip()
+    
+    data = json.loads(content)
+    
+    return DetailResult(
+        detailed_script_md=data.get("detailed_script_md", ""),
+        refined_timeline=data.get("refined_timeline", timeline),
+    )
+
+
 def stage_scene_builder(
     *,
     client: OpenRouterClient,
@@ -211,6 +357,7 @@ def stage_scene_builder(
     base_html: str,
     animation_library: str,
     component_library: str,
+    detailed_script: str = "",
 ) -> SceneBuildResult:
     """Stage C: Build HTML scene from timeline using Sonnet 4.5."""
     
@@ -221,6 +368,7 @@ Given:
 2. A base HTML template
 3. Animation CSS library
 4. Component library
+5. (Optional) A detailed visual script with exact specifications
 
 Your job:
 1. Modify the base HTML to include all required elements referenced in the timeline
@@ -238,11 +386,21 @@ Return a JSON object with:
 - "scene_spec": {"element_ids": [...], "duration_ms": ..., "event_count": ...}
 """
 
+    detailed_section = ""
+    if detailed_script:
+        detailed_section = f"""
+Detailed Visual Script (follow these specifications exactly):
+```markdown
+{detailed_script}
+```
+
+"""
+
     user_prompt = f"""Timeline:
 ```json
 {json.dumps(timeline, indent=2)}
 ```
-
+{detailed_section}
 Base HTML:
 ```html
 {base_html}
@@ -258,7 +416,7 @@ Component Library:
 {component_library}
 ```
 
-Generate the complete HTML with __shortsPlayAll() function. Return valid JSON only."""
+Generate the complete HTML with __shortsPlayAll() function. Follow the detailed visual script specifications exactly for colors, sizes, positions, and animations. Return valid JSON only."""
 
     resp = client.chat(
         model=OPENROUTER_MODEL_HTML,
