@@ -31,48 +31,90 @@ def stage_storyboard(
 ) -> StoryboardResult:
     """Stage B: Convert audio script to video script + timeline.json using GPT-5."""
     
-    system_prompt = """You are a video storyboard agent for short-form vertical videos (1080x1920).
+    system_prompt = """You are a professional video storyboard agent for short-form vertical videos (1080x1920).
 
 Given an audio script, produce:
-1. A video_script in markdown with scene breakdowns
-2. A timeline JSON with precise animation events
+1. A DETAILED video_script in markdown
+2. A precise timeline JSON with animation events
 
-Available animation classes (from ANIMATION_LIBRARY):
-- fadeUp: fade in from below
-- popIn: pop/scale in
-- zoomOut: zoom out effect
-- slideOutDown: slide down and exit
-- slideOutRight: slide right and exit
-- swipe-out: swipe left and fade
-- animate-pan: pan effect
-- animate-exit: exit animation
+## VIDEO SCRIPT REQUIREMENTS
+The video_script_md MUST include for EACH scene:
+- **Timestamp range** (e.g., "0.0s - 2.5s")
+- **Voiceover text** (exact words being spoken during this scene)
+- **Visual elements**: What appears on screen (exact text, images, components)
+- **Animation sequence**: Step-by-step animations with timing offsets
+- **Transition**: How this scene exits/next scene enters
 
-Available layers/components:
+Example format:
+```
+## SCENE 1: HOOK (0.0s - 3.0s)
+
+**Voiceover:**
+> "Let's say you're working at a bulge bracket investment bank..."
+
+**Visual:**
+- Wall Street image fills screen (zoomed 130%)
+- Text overlay: "WALL STREET" (white, 72px, centered)
+
+**Animation sequence:**
+1. (0.0s) Image starts panning right with `panRight`
+2. (1.5s) Text fades up with `fadeUp`
+3. (2.5s) Image slides down with `slideOutDown`
+
+**Transition:** Slide down reveals blue panel
+```
+
+## AVAILABLE ANIMATIONS
+- fadeUp: fade in from below (0.5s)
+- popIn: pop/scale in (0.25s)
+- zoomOut: zoom out magnify effect (0.5s)
+- slideOutDown: slide down and exit (0.6s)
+- slideOutRight: slide right and exit (0.6s)
+- swipe-out: swipe left and fade (0.5s)
+- panRight: Ken Burns pan effect (2.5s)
+- animate-exit: generic exit
+
+## AVAILABLE COMPONENTS
 - wallstreetContainer, bluePanel: intro layers
-- bullet1, bullet2: text bullets
-- spreadsheet: DCF table
-- callout1, callout2, callout3: parameter callouts
-- mcqContainer, mcqQuestion, optionA, optionB, optionC: MCQ section
-- realityLayer: context cards
-- goalLayer: win/align badges
-- playbookLayer: 4-step checklist
+- bullet1, bullet2: text bullets (CMU Serif, 48px)
+- spreadsheet: DCF table with callouts
+- callout1, callout2, callout3: parameter badges
+- mcqContainer, mcqQuestion, optionA, optionB, optionC: multiple choice
+- realityLayer: context/conflict cards
+- goalLayer: goal badges ("ALIGN FAST", "SHIP CLEAN")
+- playbookLayer: step-by-step checklist
 - wrapLayer: summary + CTA
 
-Timeline JSON format:
+## TIMELINE JSON FORMAT
 {
-  "duration_ms": <total duration>,
+  "duration_ms": <total duration in milliseconds>,
   "fps": 30,
   "events": [
-    {"t_ms": 0, "op": "classAdd", "target": "elementId", "value": "animationClass"},
-    {"t_ms": 1000, "op": "classRemove", "target": "elementId", "value": "animationClass"},
-    {"t_ms": 2000, "op": "layerShow", "target": "layerId"},
-    {"t_ms": 3000, "op": "layerHide", "target": "layerId"},
-    {"t_ms": 4000, "op": "textSet", "target": "elementId", "value": "New text content"}
+    {"t_ms": 0, "op": "layerShow", "target": "wallstreetContainer"},
+    {"t_ms": 0, "op": "classAdd", "target": "wallstreetImg", "value": "panRight"},
+    {"t_ms": 2500, "op": "classAdd", "target": "wallstreetContainer", "value": "slideOutDown"},
+    {"t_ms": 3100, "op": "layerHide", "target": "wallstreetContainer"},
+    {"t_ms": 3100, "op": "layerShow", "target": "bluePanel"},
+    {"t_ms": 4000, "op": "textSet", "target": "bullet1", "value": "Your exact text here"}
   ]
 }
 
-Respond with a JSON object containing:
-- "video_script_md": string (markdown)
+Operations:
+- classAdd: Add CSS animation class
+- classRemove: Remove CSS class
+- layerShow: Show element (display: block)
+- layerHide: Hide element (display: none)
+- textSet: Set element's innerHTML
+
+## RULES
+1. Every scene must have EXACT voiceover text from the audio script
+2. Timeline events must be in chronological order (t_ms ascending)
+3. Show layers BEFORE animating them
+4. Hide layers AFTER exit animations complete (~600ms later)
+5. Text content must be specified via textSet operations
+
+Respond with a JSON object:
+- "video_script_md": string (detailed markdown per format above)
 - "timeline": object (the timeline JSON)
 """
 
