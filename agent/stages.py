@@ -490,6 +490,60 @@ class SceneChunk:
     element_ids: List[str]
 
 
+def _prefix_scene_ids(*, scene_id: str, chunk: SceneChunk) -> SceneChunk:
+    """Prefix all element IDs in a chunk to avoid collisions when merging scenes.
+
+    This is a best-effort string rewrite for:
+    - HTML id="..."
+    - CSS selectors #id
+    - JS getElementById('id') / querySelector('#id')
+    - Quoted occurrences 'id' / "id"
+    """
+    prefix = f"{scene_id}__"
+
+    # Build mapping old_id -> new_id
+    mapping: Dict[str, str] = {}
+    for old in chunk.element_ids:
+        if not old:
+            continue
+        if old.startswith(prefix):
+            mapping[old] = old
+        else:
+            mapping[old] = prefix + old
+
+    if not mapping:
+        return chunk
+
+    import re
+
+    def replace_all(s: str) -> str:
+        if not s:
+            return s
+        out = s
+        # Replace longer ids first to reduce partial collisions.
+        for old, new in sorted(mapping.items(), key=lambda kv: len(kv[0]), reverse=True):
+            # id="old"
+            out = re.sub(rf'(\bid\s*=\s*["\']){re.escape(old)}(["\'])', rf"\g<1>{new}\2", out)
+            # #old selectors
+            out = re.sub(rf'#{re.escape(old)}\b', f"#{new}", out)
+            # getElementById('old') or querySelector('#old') etc (quoted token)
+            out = re.sub(rf'(["\']){re.escape(old)}\1', rf'\1{new}\1', out)
+        return out
+
+    new_elements = replace_all(chunk.elements_html)
+    new_css = replace_all(chunk.css)
+    new_js = replace_all(chunk.js_timeouts)
+    new_ids = [mapping.get(x, x) for x in chunk.element_ids]
+
+    return SceneChunk(
+        scene_id=chunk.scene_id,
+        elements_html=new_elements,
+        css=new_css,
+        js_timeouts=new_js,
+        element_ids=new_ids,
+    )
+
+
 def parse_scene_boundaries(detailed_script: str) -> List[Dict[str, Any]]:
     """Parse scene boundaries from detailed script markdown."""
     import re
@@ -579,6 +633,10 @@ Style requirements:
 - CMU Serif for body text, system-ui for badges
 - Colors: #1f2937 (dark text), #1e40af (blue accent), #e5e7eb (light grey)
 - All elements start with opacity: 0 or display: none
+
+CRITICAL ID RULE:
+- IDs MUST be unique across the entire video.
+- For this scene, prefix EVERY element id with the provided SCENE_ID prefix, like: SCENE_ID__titleText
 """
 
     scene_chunks: List[SceneChunk] = []
@@ -596,6 +654,8 @@ Style requirements:
         print(f"    -> {scene_id}: {scene_name} ({len(events_for_scene)} events)")
         
         user_prompt = f"""Generate HTML/CSS/JS for: {scene_name}
+
+SCENE_ID prefix: {scene_id}
 
 Scene timing: {scene["start_ms"]}ms - {scene["end_ms"]}ms
 
@@ -642,6 +702,8 @@ Return valid JSON with elements_html, css, js_timeouts, element_ids."""
                 js_timeouts=data.get("js_timeouts", ""),
                 element_ids=data.get("element_ids", []),
             )
+            # Enforce prefixing to prevent collisions when merging.
+            chunk = _prefix_scene_ids(scene_id=scene_id, chunk=chunk)
             scene_chunks.append(chunk)
             all_element_ids.extend(chunk.element_ids)
             
@@ -671,12 +733,23 @@ def merge_scene_chunks(chunks: List[SceneChunk], timeline: Dict, all_element_ids
     all_css = "\n\n".join(c.css for c in chunks if c.css)
     all_timeouts = "\n      ".join(c.js_timeouts for c in chunks if c.js_timeouts)
     
-    # Build reset code for all elements
-    reset_lines = []
-    for el_id in all_element_ids:
-        reset_lines.append(f"      const {el_id} = document.getElementById('{el_id}');")
-        reset_lines.append(f"      if ({el_id}) {{ {el_id}.style.opacity = '0'; {el_id}.style.animation = 'none'; }}")
-    reset_code = "\n".join(reset_lines)
+    # Deduplicate IDs (and avoid JS 'const <id>' redeclare errors by using a loop).
+    unique_ids = sorted(set(all_element_ids))
+    ids_json = json.dumps(unique_ids)
+    reset_code = (
+        "      const __allIds = " + ids_json + ";\n"
+        "      __allIds.forEach((id) => {\n"
+        "        const el = document.getElementById(id);\n"
+        "        if (!el) return;\n"
+        "        el.style.animation = 'none';\n"
+        "        el.style.opacity = '0';\n"
+        "        // If it was a layer, hide it too.\n"
+        "        // (Scenes should explicitly show layers via events.)\n"
+        "        if (el.dataset && el.dataset.layer === 'true') {\n"
+        "          el.style.display = 'none';\n"
+        "        }\n"
+        "      });\n"
+    )
     
     duration_ms = timeline.get("duration_ms", 30000)
     
