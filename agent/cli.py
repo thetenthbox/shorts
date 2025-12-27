@@ -41,6 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--skip-tts", action="store_true", help="Skip TTS generation")
     p.add_argument("--skip-render", action="store_true", help="Skip frame capture and MP4 render")
     p.add_argument("--render-only", action="store_true", help="Only render MP4 from existing scene.html")
+    p.add_argument("--rebuild-html", action="store_true", help="Rebuild scene.html from existing detailed_script + timeline")
     p.add_argument("--duration", type=int, default=60, help="Target duration in seconds")
     return p
 
@@ -276,6 +277,81 @@ def run_render_only(*, run_id: str, duration_s: int, skip_tts: bool) -> int:
     return 0
 
 
+def run_rebuild_html(*, run_id: str, skip_render: bool, skip_tts: bool, duration_s: int) -> int:
+    """Rebuild scene.html from existing detailed_script + timeline."""
+    
+    shorts_dir = get_shorts_dir()
+    runs_dir = shorts_dir / "runs" / run_id
+    renders_dir = shorts_dir / "renders"
+    
+    # Load existing files
+    detailed_script_path = runs_dir / "detailed_script.md"
+    refined_timeline_path = runs_dir / "refined_timeline.json"
+    timeline_path = runs_dir / "timeline.json"
+    
+    if not detailed_script_path.exists() and not timeline_path.exists():
+        print(f"ERROR: No detailed_script.md or timeline.json in {runs_dir}", file=sys.stderr)
+        return 1
+    
+    # Load timeline (prefer refined)
+    if refined_timeline_path.exists():
+        timeline = json.loads(refined_timeline_path.read_text(encoding="utf-8"))
+        print(f"Loaded refined_timeline.json")
+    elif timeline_path.exists():
+        timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+        print(f"Loaded timeline.json")
+    else:
+        timeline = {}
+    
+    # Load detailed script
+    detailed_script = ""
+    if detailed_script_path.exists():
+        detailed_script = detailed_script_path.read_text(encoding="utf-8")
+        print(f"Loaded detailed_script.md")
+    
+    # Get API key
+    openrouter_key = get_openrouter_api_key()
+    if not openrouter_key:
+        print("ERROR: OPENROUTER_API_KEY not set", file=sys.stderr)
+        return 1
+    
+    openrouter = OpenRouterClient(api_key=openrouter_key)
+    
+    # Load templates
+    base_html = load_base_html(shorts_dir)
+    animation_lib = load_animation_library(shorts_dir)
+    component_lib = load_component_library(shorts_dir)
+    
+    print("Rebuilding scene.html...")
+    try:
+        scene_result: SceneBuildResult = stage_scene_builder(
+            client=openrouter,
+            timeline=timeline,
+            base_html=base_html,
+            animation_library=animation_lib,
+            component_library=component_lib,
+            detailed_script=detailed_script,
+        )
+    except Exception as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+    
+    # Save outputs
+    scene_path = runs_dir / "scene.html"
+    scene_path.write_text(scene_result.html, encoding="utf-8")
+    (runs_dir / "scene_spec.json").write_text(
+        json.dumps(scene_result.scene_spec, indent=2), encoding="utf-8"
+    )
+    print(f"  -> Saved scene.html to {runs_dir}")
+    
+    # Optionally render
+    if not skip_render:
+        return run_render_only(run_id=run_id, duration_s=duration_s, skip_tts=skip_tts)
+    
+    print(f"\n✓ Rebuild complete!")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -286,6 +362,15 @@ def main(argv=None) -> int:
             run_id=args.id,
             duration_s=args.duration,
             skip_tts=args.skip_tts,
+        )
+    
+    # Rebuild HTML mode
+    if args.rebuild_html:
+        return run_rebuild_html(
+            run_id=args.id,
+            skip_render=args.skip_render,
+            skip_tts=args.skip_tts,
+            duration_s=args.duration,
         )
     
     audio_path = Path(args.audio) if args.audio else None
