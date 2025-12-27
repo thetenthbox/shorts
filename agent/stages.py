@@ -218,65 +218,91 @@ def stage_detail_pass(
 ) -> DetailResult:
     """Stage B2: Polish video script with detailed visual descriptions."""
     
-    system_prompt = """You are an infographic animator specifying motion graphics for a short vertical video (1080x1920).
+    system_prompt = """You are an infographic animator writing detailed specifications for a short vertical video (1080x1920).
 
-Style: Clean infographic/motion graphics on a WHITE background with subtle grey plus-sign pattern.
+Style: Clean infographic/motion graphics on a WHITE background with subtle grey plus-sign pattern. NOT cinematic — think educational explainer video.
 
 ## YOUR TASK
-For each scene, specify exactly what appears and how it animates. Keep it simple and clean.
+For each scene, write:
+1. A DETAILED PARAGRAPH explaining exactly what the viewer sees, moment by moment
+2. Technical specs for each element
 
 ## EXAMPLE OUTPUT:
 
 ```markdown
 ## SCENE 1: HOOK (0.0s - 4.0s)
 
+### Description:
+The scene opens on a clean white background with a subtle repeating grey plus-sign pattern that gives it a medical/clinical aesthetic. At 0.0s, a header fades up from below into the top portion of the screen — the text reads "THE IB STRESS TEST" in dark grey CMU Serif font at 56px. It's centered horizontally and positioned about 15% from the top. The fade-up animation takes 500ms with an ease-out curve, giving it a smooth professional entrance.
+
+One second later (1.0s), the first bullet point appears below it: "• You're at a bulge bracket firm" — this text is slightly smaller at 42px, left-aligned with 80px padding from the left edge, positioned at about 35% from the top. It uses the same fadeUp animation, rising 20px while fading in over 400ms.
+
+At 2.0s, a second bullet fades up directly below: "• An Associate is shredding your model" — same styling, same animation, positioned at 45% from top. The viewer now sees the full context: a title and two bullet points stacked vertically on the left side of the screen.
+
+At 3.5s, all three text elements simultaneously swipe out to the left — they slide leftward while fading to opacity 0 over 500ms, clearing the screen for the next scene.
+
 ### Elements:
-1. **Header text** "THE IB STRESS TEST"
-   - Position: top 15%, centered
-   - Font: CMU Serif, 56px, dark grey (#1f2937)
-   - Animation: fadeUp at 0.0s (500ms)
+1. **Header** "THE IB STRESS TEST"
+   - Position: top 15%, center
+   - Font: CMU Serif, 56px, #1f2937
+   - Animation: fadeUp at 0.0s, duration 500ms, translateY(20px→0)
 
-2. **Bullet 1** "You're at a bulge bracket firm"
-   - Position: top 35%, left-aligned with 80px padding
+2. **Bullet 1** "• You're at a bulge bracket firm"
+   - Position: top 35%, left 80px
    - Font: CMU Serif, 42px, #1f2937
-   - Animation: fadeUp at 1.0s (400ms)
+   - Animation: fadeUp at 1.0s, duration 400ms
 
-3. **Bullet 2** "An Associate is shredding your model"
-   - Position: top 45%, left-aligned
-   - Animation: fadeUp at 2.0s (400ms)
+3. **Bullet 2** "• An Associate is shredding your model"
+   - Position: top 45%, left 80px
+   - Font: CMU Serif, 42px, #1f2937
+   - Animation: fadeUp at 2.0s, duration 400ms
 
-### Transition: All elements swipe-out left at 3.5s
+4. **Exit**: All elements swipe-out left at 3.5s (500ms)
 
 ---
 
 ## SCENE 2: SPREADSHEET (4.0s - 8.0s)
 
+### Description:
+The white plus-pattern background remains. At 4.0s, a DCF spreadsheet table pops into the center of the screen. The pop animation scales it from 80% to 100% with a slight overshoot bounce, taking 300ms. The table has 6 columns and 5 rows — white cells with light grey (#e5e7eb) borders, header row in slightly darker grey. The cells contain placeholder dashes for now.
+
+At 5.0s, the first callout badge zooms out from the WACC cell. This is a rounded blue pill (#1e40af) with white text reading "WACC" — it starts small inside the cell and zooms outward to full size (the zoomOut animation) over 400ms, ending up floating just outside the table.
+
+At 5.5s, a second badge "Exit Multiple" zooms out from another cell using the same animation. At 6.0s, "Growth Rate" appears the same way. Now we have the table with three blue badges floating around it, highlighting the key inputs.
+
+At 7.5s, the entire spreadsheet and all badges fade out together over 400ms, preparing for the next scene.
+
 ### Elements:
-1. **DCF Table** (centered)
-   - White cells, light grey borders
-   - 6 columns × 5 rows
-   - Animation: popIn at 4.0s (300ms)
+1. **DCF Table**
+   - Position: centered
+   - Size: 900px wide, 400px tall
+   - Style: white cells, #e5e7eb borders, 6×5 grid
+   - Animation: popIn at 4.0s (300ms, scale 0.8→1.0 with overshoot)
 
-2. **Callout badges** zoom out from cells:
-   - "WACC" at 5.0s
-   - "Exit Multiple" at 5.5s
-   - "Growth Rate" at 6.0s
-   - Each: blue pill (#1e40af), white text, zoomOut animation
+2. **Callout "WACC"**
+   - Style: pill shape, bg #1e40af, text white 24px
+   - Animation: zoomOut from cell at 5.0s (400ms)
 
-### Transition: Table fades out at 7.5s
+3. **Callout "Exit Multiple"**
+   - Animation: zoomOut at 5.5s
+
+4. **Callout "Growth Rate"**
+   - Animation: zoomOut at 6.0s
+
+5. **Exit**: All fade out at 7.5s (400ms)
 ```
 
 ## RULES
 1. Background is ALWAYS white (#ffffff) with grey plus-pattern
-2. Use simple animations: fadeUp, popIn, zoomOut, swipe-out
-3. Text in CMU Serif or system-ui
-4. Colors: dark grey text (#1f2937), blue accents (#1e40af), white cards
-5. Keep descriptions SHORT and actionable
+2. Write 150-200 words per scene description — be DETAILED about timing and motion
+3. Animations: fadeUp, popIn, zoomOut, swipe-out, fade
+4. Text: CMU Serif for body, system-ui for badges
+5. Colors: #1f2937 (dark text), #1e40af (blue accent), #ffffff (white), #e5e7eb (light grey)
 
 ## OUTPUT
 Return JSON with:
-- "detailed_script_md": concise markdown listing elements + animations per scene
-- "refined_timeline": timeline with added "description" field on each event
+- "detailed_script_md": markdown with Description paragraphs + Elements specs
+- "refined_timeline": timeline with "description" field on each event
 """
 
     user_prompt = f"""Video Script:
