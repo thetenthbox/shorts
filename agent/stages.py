@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -451,16 +452,35 @@ Component Library:
 
 Generate the complete HTML with __shortsPlayAll() function. Follow the detailed visual script specifications exactly for colors, sizes, positions, and animations. Return valid JSON only."""
 
-    resp = client.chat(
-        model=OPENROUTER_MODEL_HTML,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.2,
-        max_tokens=16000,
-        response_format={"type": "json_object"},
-    )
+    # Allow larger outputs for HTML generation.
+    # Set OPENROUTER_MAX_TOKENS_HTML=120000 (or similar) to request more output.
+    max_tokens_html = int(os.getenv("OPENROUTER_MAX_TOKENS_HTML", "16000"))
+    try:
+        resp = client.chat(
+            model=OPENROUTER_MODEL_HTML,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.2,
+            max_tokens=max_tokens_html,
+            response_format={"type": "json_object"},
+        )
+    except Exception:
+        # If provider/model rejects huge max_tokens, fall back to a safer value.
+        if max_tokens_html > 16000:
+            resp = client.chat(
+                model=OPENROUTER_MODEL_HTML,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.2,
+                max_tokens=16000,
+                response_format={"type": "json_object"},
+            )
+        else:
+            raise
 
     content = resp["choices"][0]["message"]["content"]
     if not content or not content.strip():

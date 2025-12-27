@@ -41,7 +41,8 @@ class OpenRouterClient:
             payload["response_format"] = response_format
 
         url = f"{self.base_url}/chat/completions"
-        with httpx.Client(timeout=60.0) as client:
+        # Large HTML generations can take longer than 60s.
+        with httpx.Client(timeout=180.0) as client:
             resp = client.post(url, headers=headers, json=payload)
             resp.raise_for_status()
             return resp.json()
