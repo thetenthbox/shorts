@@ -14,6 +14,7 @@ from .config import (
     get_cartesia_api_key,
     get_openrouter_api_key,
 )
+from .debug_overlay import inject_debug_overlay
 from .openrouter_client import OpenRouterClient
 from .renderer import render_mp4
 from .stages import (
@@ -42,6 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--skip-render", action="store_true", help="Skip frame capture and MP4 render")
     p.add_argument("--render-only", action="store_true", help="Only render MP4 from existing scene.html")
     p.add_argument("--rebuild-html", action="store_true", help="Rebuild scene.html from existing detailed_script + timeline")
+    p.add_argument("--debug", action="store_true", help="Add debug overlay showing timer + current script line")
     p.add_argument("--duration", type=int, default=60, help="Target duration in seconds")
     return p
 
@@ -58,6 +60,7 @@ def run_pipeline(
     topic: Optional[str],
     skip_tts: bool,
     skip_render: bool,
+    debug: bool,
     duration_s: int,
 ) -> int:
     """Run the full pipeline."""
@@ -157,9 +160,15 @@ def run_pipeline(
         print(f"ERROR in scene builder stage: {e}", file=sys.stderr)
         return 1
     
-    # Save scene outputs
+    # Save scene outputs (with optional debug overlay)
+    scene_html = scene_result.html
+    if debug:
+        voiceover_segments = final_timeline.get("voiceover_segments", [])
+        scene_html = inject_debug_overlay(scene_html, voiceover_segments)
+        print("  -> Injected debug overlay")
+    
     scene_path = runs_dir / "scene.html"
-    scene_path.write_text(scene_result.html, encoding="utf-8")
+    scene_path.write_text(scene_html, encoding="utf-8")
     (runs_dir / "scene_spec.json").write_text(
         json.dumps(scene_result.scene_spec, indent=2), encoding="utf-8"
     )
@@ -277,7 +286,7 @@ def run_render_only(*, run_id: str, duration_s: int, skip_tts: bool) -> int:
     return 0
 
 
-def run_rebuild_html(*, run_id: str, skip_render: bool, skip_tts: bool, duration_s: int) -> int:
+def run_rebuild_html(*, run_id: str, skip_render: bool, skip_tts: bool, debug: bool, duration_s: int) -> int:
     """Rebuild scene.html from existing detailed_script + timeline."""
     
     shorts_dir = get_shorts_dir()
@@ -336,9 +345,21 @@ def run_rebuild_html(*, run_id: str, skip_render: bool, skip_tts: bool, duration
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
     
-    # Save outputs
+    # Save outputs (with optional debug overlay)
+    scene_html = scene_result.html
+    if debug:
+        # Load voiceover_segments from timeline.json (not refined_timeline which may be a list)
+        orig_timeline_path = runs_dir / "timeline.json"
+        if orig_timeline_path.exists():
+            orig_timeline = json.loads(orig_timeline_path.read_text(encoding="utf-8"))
+            voiceover_segments = orig_timeline.get("voiceover_segments", [])
+        else:
+            voiceover_segments = timeline.get("voiceover_segments", []) if isinstance(timeline, dict) else []
+        scene_html = inject_debug_overlay(scene_html, voiceover_segments)
+        print("  -> Injected debug overlay")
+    
     scene_path = runs_dir / "scene.html"
-    scene_path.write_text(scene_result.html, encoding="utf-8")
+    scene_path.write_text(scene_html, encoding="utf-8")
     (runs_dir / "scene_spec.json").write_text(
         json.dumps(scene_result.scene_spec, indent=2), encoding="utf-8"
     )
@@ -370,6 +391,7 @@ def main(argv=None) -> int:
             run_id=args.id,
             skip_render=args.skip_render,
             skip_tts=args.skip_tts,
+            debug=args.debug,
             duration_s=args.duration,
         )
     
@@ -381,6 +403,7 @@ def main(argv=None) -> int:
         topic=args.topic,
         skip_tts=args.skip_tts,
         skip_render=args.skip_render,
+        debug=args.debug,
         duration_s=args.duration,
     )
 

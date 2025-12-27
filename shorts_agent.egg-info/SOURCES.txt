@@ -4,6 +4,7 @@ agent/__init__.py
 agent/cartesia_tts.py
 agent/cli.py
 agent/config.py
+agent/debug_overlay.py
 agent/openrouter_client.py
 agent/qa.py
 agent/renderer.py
