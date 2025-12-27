@@ -63,10 +63,10 @@ Audio Script ─┬─► Stage B: Storyboard (GPT-5)
 
 | Stage | Model | What It Does | Output |
 |-------|-------|--------------|--------|
-| **B: Storyboard** | GPT-5 | Converts audio script to timed animation plan. Creates voiceover timing tables mapping each phrase to a timestamp. Generates animation triggers tied to specific spoken words. | `video_script.md`, `timeline.json` |
-| **B2: Detail Pass** | GPT-5 | Writes detailed natural language descriptions of each scene. Specifies exact positions, colors, fonts, and animation specs. Describes what the viewer sees moment-by-moment. | `detailed_script.md`, `refined_timeline.json` |
-| **C: Scene Builder** | Sonnet 4.5 | Generates complete HTML/CSS/JS from the timeline and detailed script. Creates all visual elements and a `__shortsPlayAll()` function that executes animations at the correct times. | `scene.html`, `scene_spec.json` |
-| **D: TTS** | Cartesia Sonic 3 | Synthesizes voiceover audio from the script. Returns word-level timestamps for sync. | `voiceover.wav` |
+| **D0: TTS + Timestamps (first)** | Cartesia Sonic 3 | Synthesizes voiceover audio AND word timestamps. We convert these to `voiceover_segments` which become the authoritative timing for the rest of the pipeline. | `renders/<id>.wav`, `runs/<id>/tts_words.json`, `runs/<id>/voiceover_segments.json` |
+| **B: Storyboard (timestamp-driven)** | GPT-5 | Builds `timeline.json` using the authoritative `voiceover_segments` timestamps (no guesswork). | `video_script.md`, `timeline.json` |
+| **B2: Detail Pass (visual-only)** | GPT-5 | Adds detailed visual descriptions/specs. **Must not change timing** (no changes to `t_ms` or segment times). | `detailed_script.md`, `refined_timeline.json` |
+| **C: Scene Builder** | Sonnet 4.5 | Generates complete HTML/CSS/JS from timeline + detailed script. | `scene.html`, `scene_spec.json` |
 | **E: Render** | Playwright + ffmpeg | Captures frames from the HTML animation using headless Chromium. Encodes to MP4 and muxes with audio. | `video.mp4`, `final.mp4` |
 
 ### Key Concept: Voiceover-Driven Timing
@@ -112,6 +112,7 @@ shorts --id <run_id> --audio <path> [options]
 |----------|---------|-------------|
 | `--duration` | 60 | Target video duration in seconds |
 | `--skip-tts` | false | Skip voiceover generation |
+| `--no-tts-first` | false | Disable timestamp-driven timing (use estimated timings) |
 | `--skip-render` | false | Skip Playwright/ffmpeg rendering |
 | `--render-only` | false | Only render MP4 from existing `runs/<id>/scene.html` |
 | `--rebuild-html` | false | Rebuild `runs/<id>/scene.html` from existing `detailed_script.md` + timeline |

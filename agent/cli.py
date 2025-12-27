@@ -40,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--audio", help="Path to audio script markdown file")
     p.add_argument("--topic", help="Topic to generate audio script from (not implemented yet)")
     p.add_argument("--skip-tts", action="store_true", help="Skip TTS generation")
+    p.add_argument("--no-tts-first", action="store_true", help="Disable TTS-first timestamp-driven timing (use estimated timings)")
     p.add_argument("--skip-render", action="store_true", help="Skip frame capture and MP4 render")
     p.add_argument("--render-only", action="store_true", help="Only render MP4 from existing scene.html")
     p.add_argument("--rebuild-html", action="store_true", help="Rebuild scene.html from existing detailed_script + timeline")
@@ -59,6 +60,7 @@ def run_pipeline(
     audio_script_path: Optional[Path],
     topic: Optional[str],
     skip_tts: bool,
+    no_tts_first: bool,
     skip_render: bool,
     debug: bool,
     duration_s: int,
@@ -98,6 +100,65 @@ def run_pipeline(
     
     # Save audio script to run dir
     (runs_dir / "audio_script.md").write_text(audio_script, encoding="utf-8")
+
+    # Stage D0: TTS with timestamps FIRST (authoritative timing for storyboard)
+    tts_word_timestamps = None
+    wav_path: Optional[Path] = None
+    voiceover_segments: Optional[list] = None
+    if not skip_tts and cartesia_key and not no_tts_first:
+        print("Stage D0: Generating voiceover + timestamps (authoritative timing)...")
+        try:
+            tts = CartesiaTTS(api_key=cartesia_key)
+            wav_path = renders_dir / f"{run_id}.wav"
+            tts_word_timestamps = tts.synthesize_with_timestamps(
+                text=audio_script,
+                voice_id=CARTESIA_VOICE_ID,
+                out_wav_path=wav_path,
+            )
+            print(f"  -> Saved voiceover to {wav_path}")
+            # Persist word timestamps for debugging
+            (runs_dir / "tts_words.json").write_text(
+                json.dumps([w.__dict__ for w in tts_word_timestamps], indent=2),
+                encoding="utf-8",
+            )
+            # Build voiceover_segments by grouping words into sentence-like chunks
+            voiceover_segments = []
+            buf_words = []
+            seg_start = None
+            def flush_seg(end_ms: int):
+                nonlocal buf_words, seg_start
+                if not buf_words or seg_start is None:
+                    buf_words = []
+                    seg_start = None
+                    return
+                text = " ".join(buf_words).strip()
+                if text:
+                    voiceover_segments.append({"start_ms": int(seg_start), "end_ms": int(end_ms), "text": text})
+                buf_words = []
+                seg_start = None
+
+            for wt in tts_word_timestamps:
+                if seg_start is None:
+                    seg_start = wt.start_ms
+                token = wt.word
+                buf_words.append(token)
+                if token.endswith((".", "?", "!", "…")):
+                    flush_seg(wt.end_ms)
+                # Also break on explicit pauses represented in script as blank lines by limiting segment length
+                if len(buf_words) >= 18:
+                    flush_seg(wt.end_ms)
+            if tts_word_timestamps:
+                flush_seg(tts_word_timestamps[-1].end_ms)
+
+            if voiceover_segments:
+                (runs_dir / "voiceover_segments.json").write_text(
+                    json.dumps(voiceover_segments, indent=2), encoding="utf-8"
+                )
+        except Exception as e:
+            print(f"WARNING: TTS timestamps failed: {e} (falling back to estimated timings)", file=sys.stderr)
+            wav_path = None
+            tts_word_timestamps = None
+            voiceover_segments = None
     
     # Stage B: Storyboard (audio script -> timeline)
     print("Stage B: Generating video script and timeline...")
@@ -105,6 +166,7 @@ def run_pipeline(
         storyboard: StoryboardResult = stage_storyboard(
             client=openrouter,
             audio_script=audio_script,
+            voiceover_segments=voiceover_segments,
             duration_hint_s=duration_s,
         )
     except Exception as e:
@@ -181,22 +243,7 @@ def run_pipeline(
     )
     print(f"  -> Saved scene.html and scene_spec.json to {runs_dir}")
     
-    # Stage D: TTS (audio script -> WAV)
-    wav_path: Optional[Path] = None
-    if not skip_tts and cartesia_key:
-        print("Stage D: Generating voiceover...")
-        try:
-            tts = CartesiaTTS(api_key=cartesia_key)
-            wav_path = renders_dir / f"{run_id}.wav"
-            tts.synthesize_wav(
-                text=audio_script,
-                voice_id=CARTESIA_VOICE_ID,
-                out_wav_path=wav_path,
-            )
-            print(f"  -> Saved voiceover to {wav_path}")
-        except Exception as e:
-            print(f"WARNING: TTS failed: {e}", file=sys.stderr)
-            wav_path = None
+    # Stage D: TTS (already done in Stage D0 if not skipped)
     
     # Stage E: Render (HTML + WAV -> MP4)
     if not skip_render:
@@ -412,6 +459,7 @@ def main(argv=None) -> int:
         audio_script_path=audio_path,
         topic=args.topic,
         skip_tts=args.skip_tts,
+        no_tts_first=args.no_tts_first,
         skip_render=args.skip_render,
         debug=args.debug,
         duration_s=args.duration,

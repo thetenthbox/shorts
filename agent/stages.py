@@ -28,6 +28,7 @@ def stage_storyboard(
     *,
     client: OpenRouterClient,
     audio_script: str,
+    voiceover_segments: Optional[List[Dict[str, Any]]] = None,
     duration_hint_s: int = 60,
 ) -> StoryboardResult:
     """Stage B: Convert audio script to video script + timeline.json using GPT-5."""
@@ -41,7 +42,8 @@ Given an audio script, produce:
 ## CRITICAL: VOICEOVER-DRIVEN TIMING
 The video MUST be driven by the voiceover. Every animation should be triggered by specific words being spoken.
 
-Assume speaking rate: ~150 words per minute (~2.5 words/second, ~400ms per word)
+If the user provides `voiceover_segments` (start_ms/end_ms/text), you MUST use those exact timestamps.
+DO NOT estimate timing in that case.
 
 ## VIDEO SCRIPT REQUIREMENTS
 The video_script_md MUST include for EACH scene:
@@ -153,9 +155,9 @@ you MUST use the CenteredX variants, otherwise the animation will break the cent
 - playbookLayer: step-by-step checklist
 - wrapLayer: summary + CTA
 
-## TIMELINE JSON FORMAT
+## TIMELINE JSON FORMAT (MUST BE VALID JSON)
 {
-  "duration_ms": <total duration in milliseconds>,
+  "duration_ms": 30000,
   "fps": 30,
   "voiceover_segments": [
     {"start_ms": 0, "end_ms": 1200, "text": "Let's say you're working"},
@@ -163,29 +165,19 @@ you MUST use the CenteredX variants, otherwise the animation will break the cent
     {"start_ms": 2800, "end_ms": 4000, "text": "on Wall Street."}
   ],
   "events": [
-    // SCENE 1: HOOK (0-6s)
     {"t_ms": 0, "op": "layerShow", "target": "wallstreetContainer", "trigger": "Let's"},
     {"t_ms": 0, "op": "classAdd", "target": "wallstreetImg", "value": "panRight"},
     {"t_ms": 2800, "op": "layerShow", "target": "titleText"},
     {"t_ms": 2800, "op": "classAdd", "target": "titleText", "value": "fadeUp", "trigger": "Wall Street"},
-    
-    // TRANSITION: Hide HOOK before PROBLEM
     {"t_ms": 5500, "op": "classAdd", "target": "wallstreetContainer", "value": "fadeOut"},
     {"t_ms": 5500, "op": "classAdd", "target": "titleText", "value": "fadeOut"},
     {"t_ms": 6000, "op": "layerHide", "target": "wallstreetContainer"},
     {"t_ms": 6000, "op": "layerHide", "target": "titleText"},
-    
-    // SCENE 2: PROBLEM (6-12s)
     {"t_ms": 6000, "op": "layerShow", "target": "spreadsheet", "trigger": "ripping"},
     {"t_ms": 6000, "op": "classAdd", "target": "spreadsheet", "value": "popIn"},
-    
-    // TRANSITION: Hide PROBLEM before OPTIONS
     {"t_ms": 11500, "op": "classAdd", "target": "spreadsheet", "value": "fadeOut"},
     {"t_ms": 12000, "op": "layerHide", "target": "spreadsheet"},
-    
-    // SCENE 3: OPTIONS (12-18s)
     {"t_ms": 12000, "op": "layerShow", "target": "mcqContainer"}
-    // ... and so on
   ]
 }
 
@@ -221,43 +213,94 @@ you MUST use the CenteredX variants, otherwise the animation will break the cent
 Respond with a JSON object containing:
 - "video_script_md": string (detailed markdown with voiceover tables)
 - "timeline": object (timeline JSON with voiceover_segments and events)
+
+CRITICAL: Output MUST be valid JSON. No comments. No trailing commas.
+"""
+
+    segments_block = ""
+    if voiceover_segments:
+        segments_block = f"""
+Voiceover Segments (AUTHORITATIVE TIMING — use these exact timestamps):
+```json
+{json.dumps(voiceover_segments, indent=2)}
+```
 """
 
     user_prompt = f"""Audio script:
 
 {audio_script}
+{segments_block}
 
 Target duration: ~{duration_hint_s} seconds
 
 Generate the video_script_md and timeline JSON. Return valid JSON only."""
 
-    resp = client.chat(
-        model=OPENROUTER_MODEL_SCRIPT,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.3,
-        max_tokens=4000,
-        response_format={"type": "json_object"},
-    )
+    last_err: Optional[Exception] = None
+    def _parse_json_loose(raw: str) -> Dict[str, Any]:
+        """Best-effort JSON parsing for occasional model formatting mistakes."""
+        s = raw.strip()
+        # Extract the largest JSON object substring if extra text leaked.
+        start = s.find("{")
+        end = s.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            s = s[start : end + 1]
+        # Remove JS-style comments (shouldn't exist, but models sometimes include them)
+        s = re.sub(r"(?m)^\s*//.*$", "", s)
+        # Remove trailing commas
+        s = re.sub(r",\s*([}\]])", r"\1", s)
+        return json.loads(s)
 
-    content = resp["choices"][0]["message"]["content"]
-    
-    # Strip markdown code fences if present
-    content = content.strip()
-    if content.startswith("```"):
-        first_newline = content.find("\n")
-        if first_newline != -1:
-            content = content[first_newline + 1:]
-        if content.endswith("```"):
-            content = content[:-3].strip()
-    
-    data = json.loads(content)
-    
+    data: Dict[str, Any] = {}
+    for attempt in range(3):
+        try:
+            repair_hint = ""
+            if attempt > 0:
+                repair_hint = "\n\nIMPORTANT: Your previous output was NOT valid JSON. Return ONLY valid JSON (no markdown, no comments)."
+
+            resp = client.chat(
+                model=OPENROUTER_MODEL_SCRIPT,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt + repair_hint},
+                ],
+                temperature=0.2,
+                max_tokens=4000,
+                response_format={"type": "json_object"},
+            )
+            content = resp["choices"][0]["message"]["content"]
+            if not content or not content.strip():
+                raise ValueError(f"Empty response from LLM. Full response: {resp}")
+
+            # Strip markdown code fences if present
+            content = content.strip()
+            if content.startswith("```"):
+                first_newline = content.find("\n")
+                if first_newline != -1:
+                    content = content[first_newline + 1:]
+                if content.endswith("```"):
+                    content = content[:-3].strip()
+
+            data = _parse_json_loose(content)
+            break
+        except Exception as e:
+            last_err = e
+            continue
+    else:
+        raise last_err or ValueError("Storyboard stage failed after retries")
+
+    timeline = data.get("timeline", {}) or {}
+    # If we have authoritative timing from TTS, enforce it in the returned timeline.
+    if voiceover_segments and isinstance(timeline, dict):
+        timeline["voiceover_segments"] = voiceover_segments
+        # Ensure duration matches the final segment end if present.
+        try:
+            timeline["duration_ms"] = int(voiceover_segments[-1]["end_ms"])
+        except Exception:
+            pass
+
     return StoryboardResult(
         video_script_md=data.get("video_script_md", ""),
-        timeline=data.get("timeline", {}),
+        timeline=timeline,
     )
 
 
@@ -365,6 +408,13 @@ At 7.5s, the entire spreadsheet and all badges fade out together over 400ms, pre
 Return JSON with:
 - "detailed_script_md": markdown with Description paragraphs + Elements specs
 - "refined_timeline": timeline with "description" field on each event
+
+## HARD CONSTRAINT (DO NOT BREAK TIMING)
+The refined_timeline MUST preserve all timing. You MUST NOT change:
+- refined_timeline.duration_ms
+- refined_timeline.voiceover_segments
+- any event.t_ms values
+You may only ADD fields (like event.description / event.easing / event.duration_ms).
 """
 
     user_prompt = f"""Video Script:
