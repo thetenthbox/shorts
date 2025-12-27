@@ -218,95 +218,65 @@ def stage_detail_pass(
 ) -> DetailResult:
     """Stage B2: Polish video script with detailed visual descriptions."""
     
-    system_prompt = """You are a film director describing exactly what appears on screen for a short-form vertical video (1080x1920).
+    system_prompt = """You are an infographic animator specifying motion graphics for a short vertical video (1080x1920).
 
-Your job is to write a DETAILED NATURAL LANGUAGE DESCRIPTION of every visual moment, as if you're describing the video to someone who can't see it.
+Style: Clean infographic/motion graphics on a WHITE background with subtle grey plus-sign pattern.
 
 ## YOUR TASK
-For each scene, write a LENGTHY PARAGRAPH describing:
-
-1. **What the viewer sees** - Describe the visual experience moment by moment
-2. **How elements appear** - The motion, the feeling, the visual impact
-3. **Colors and atmosphere** - The mood, lighting, color palette
-4. **Text and typography** - Exactly what text appears, how it looks, where it sits
-5. **Transitions** - How one scene flows into the next
+For each scene, specify exactly what appears and how it animates. Keep it simple and clean.
 
 ## EXAMPLE OUTPUT:
 
 ```markdown
-## SCENE 1: HOOK (0.0s - 6.5s)
+## SCENE 1: HOOK (0.0s - 4.0s)
 
-### Director's Description:
+### Elements:
+1. **Header text** "THE IB STRESS TEST"
+   - Position: top 15%, centered
+   - Font: CMU Serif, 56px, dark grey (#1f2937)
+   - Animation: fadeUp at 0.0s (500ms)
 
-The video opens on a dramatic aerial shot of Wall Street's towering skyscrapers. The image is slightly darkened with a cinematic filter, giving it weight and gravitas. The camera slowly pans from left to right, creating that classic Ken Burns documentary feel — the buildings seem to drift past as if we're in a helicopter surveying the financial district.
+2. **Bullet 1** "You're at a bulge bracket firm"
+   - Position: top 35%, left-aligned with 80px padding
+   - Font: CMU Serif, 42px, #1f2937
+   - Animation: fadeUp at 1.0s (400ms)
 
-As the narrator says "Wall Street," bold white text slams onto the screen from below. The words "WALL STREET" appear dead center, massive at 72 pixels, with a subtle drop shadow that makes them pop against the cityscape. The text is uppercase, spaced wide like a movie title, demanding attention.
+3. **Bullet 2** "An Associate is shredding your model"
+   - Position: top 45%, left-aligned
+   - Animation: fadeUp at 2.0s (400ms)
 
-The image continues its slow drift for another beat, then suddenly — as the narrator mentions the "senior associate" — the entire Wall Street layer drops away. It slides downward like a curtain falling, smooth and decisive, taking about half a second. What's revealed underneath is a deep navy blue panel (#1e3a5f), solid and corporate, like we've entered the office.
-
-### Visual Elements:
-
-**Wall Street Image Layer**
-- Full-bleed photograph filling the entire 1080x1920 frame
-- Zoomed to 130% so there's room to pan
-- Brightness reduced to 80% for cinematic feel
-- Slow rightward pan over 2.5 seconds
-- Slight zoom-in happening simultaneously (1.0x to 1.1x)
-
-**"WALL STREET" Title**
-- Position: Perfectly centered (50% from top and left)
-- Font: System UI, 800 weight (extra bold)
-- Size: 72px
-- Color: Pure white (#ffffff)
-- Letter-spacing: 8px (w i d e)
-- Text-shadow: 0 4px 20px rgba(0,0,0,0.5) for depth
-- Animation: Fades up from 30px below over 500ms
-
-**Transition Out**
-- The entire wall street layer slides down
-- Duration: 600ms with ease-in-out curve
-- Reveals the blue panel waiting underneath
+### Transition: All elements swipe-out left at 3.5s
 
 ---
 
-## SCENE 2: THE CONFLICT (6.5s - 12.0s)
+## SCENE 2: SPREADSHEET (4.0s - 8.0s)
 
-### Director's Description:
+### Elements:
+1. **DCF Table** (centered)
+   - White cells, light grey borders
+   - 6 columns × 5 rows
+   - Animation: popIn at 4.0s (300ms)
 
-Now we're in corporate territory. The deep blue backdrop feels cold, institutional. A white Excel-style spreadsheet materializes in the center of the screen — it pops in with a quick scale animation, starting at 80% size and snapping to 100% with a slight overshoot, like it's being slapped down on a desk.
+2. **Callout badges** zoom out from cells:
+   - "WACC" at 5.0s
+   - "Exit Multiple" at 5.5s
+   - "Growth Rate" at 6.0s
+   - Each: blue pill (#1e40af), white text, zoomOut animation
 
-The spreadsheet has that familiar grid look: light grey borders, white cells, a header row with years 2024-2028. But something's wrong — certain cells are highlighted in angry red (#dc2626), the color of errors and warnings. These red cells pulse subtly, drawing the eye.
-
-As the narrator says "picking it apart," the spreadsheet gives a little shake — a quick left-right vibration that lasts maybe 200ms, like someone just slammed their hand on the table next to it...
+### Transition: Table fades out at 7.5s
 ```
 
-## REQUIREMENTS
-
-1. **Be verbose** - Each scene description should be at least 150-200 words
-2. **Be specific** - Exact colors (hex codes), exact sizes (pixels), exact durations (milliseconds)
-3. **Be cinematic** - Describe the FEELING, not just the facts
-4. **Include technical specs** - After each description, list the concrete element specifications
-5. **Describe ALL motion** - Every animation, transition, and micro-interaction
-
-## REFINED TIMELINE
-Also output a refined timeline with:
-- "duration_ms" on each event
-- "easing" (e.g., "ease-out", "cubic-bezier(0.34, 1.56, 0.64, 1)")
-- "description" - a one-line human description of what this event does
-
-## COLOR PALETTE
-- Primary blue: #1e3a5f
-- Accent blue: #1e40af  
-- White: #ffffff
-- Dark text: #1f2937
-- Light grey: #f3f4f6
-- Error red: #dc2626
-- Success green: #059669
+## RULES
+1. Background is ALWAYS white (#ffffff) with grey plus-pattern
+2. Use simple animations: fadeUp, popIn, zoomOut, swipe-out
+3. Text in CMU Serif or system-ui
+4. Colors: dark grey text (#1f2937), blue accents (#1e40af), white cards
+5. Keep descriptions SHORT and actionable
 
 ## OUTPUT
 Return JSON with:
-- "detailed_script_md": lengthy markdown with director's descriptions + technical specs
-- "refined_timeline": timeline with duration_ms, easing, and description fields
+- "detailed_script_md": concise markdown listing elements + animations per scene
+- "refined_timeline": timeline with added "description" field on each event
 """
 
     user_prompt = f"""Video Script:

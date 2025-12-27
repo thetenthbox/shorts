@@ -40,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--topic", help="Topic to generate audio script from (not implemented yet)")
     p.add_argument("--skip-tts", action="store_true", help="Skip TTS generation")
     p.add_argument("--skip-render", action="store_true", help="Skip frame capture and MP4 render")
+    p.add_argument("--render-only", action="store_true", help="Only render MP4 from existing scene.html")
     p.add_argument("--duration", type=int, default=60, help="Target duration in seconds")
     return p
 
@@ -207,9 +208,85 @@ def run_pipeline(
     return 0
 
 
+def run_render_only(*, run_id: str, duration_s: int, skip_tts: bool) -> int:
+    """Render MP4 from existing scene.html in a run directory."""
+    
+    shorts_dir = get_shorts_dir()
+    runs_dir = shorts_dir / "runs" / run_id
+    renders_dir = shorts_dir / "renders"
+    
+    scene_path = runs_dir / "scene.html"
+    if not scene_path.exists():
+        print(f"ERROR: {scene_path} not found", file=sys.stderr)
+        return 1
+    
+    # Load timeline for duration
+    timeline_path = runs_dir / "refined_timeline.json"
+    if not timeline_path.exists():
+        timeline_path = runs_dir / "timeline.json"
+    
+    if timeline_path.exists():
+        timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+        duration_ms = timeline.get("duration_ms", duration_s * 1000)
+    else:
+        duration_ms = duration_s * 1000
+    
+    # Check for existing WAV
+    wav_path = renders_dir / f"{run_id}.wav"
+    if not wav_path.exists():
+        wav_path = None
+    
+    # TTS if needed
+    if not skip_tts and not wav_path:
+        cartesia_key = get_cartesia_api_key()
+        audio_script_path = runs_dir / "audio_script.md"
+        if cartesia_key and audio_script_path.exists():
+            print("Generating voiceover...")
+            tts = CartesiaTTS(api_key=cartesia_key)
+            wav_path = renders_dir / f"{run_id}.wav"
+            tts.synthesize_wav(
+                text=audio_script_path.read_text(encoding="utf-8"),
+                voice_id=CARTESIA_VOICE_ID,
+                out_wav_path=wav_path,
+            )
+            print(f"  -> Saved voiceover to {wav_path}")
+    
+    print(f"Rendering MP4 from {scene_path}...")
+    print(f"  Duration: {duration_ms}ms, WAV: {wav_path or 'none'}")
+    
+    try:
+        result = render_mp4(
+            html_path=scene_path,
+            output_dir=runs_dir,
+            duration_ms=duration_ms,
+            fps=30,
+            wav_path=wav_path,
+        )
+        
+        final_mp4 = result.final_mp4_path or result.mp4_path
+        output_mp4 = renders_dir / f"{run_id}.mp4"
+        output_mp4.write_bytes(final_mp4.read_bytes())
+        print(f"  -> Saved MP4 to {output_mp4}")
+        print(f"  -> Captured {result.frame_count} frames")
+    except Exception as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 1
+    
+    print(f"\n✓ Render complete!")
+    return 0
+
+
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    
+    # Render-only mode
+    if args.render_only:
+        return run_render_only(
+            run_id=args.id,
+            duration_s=args.duration,
+            skip_tts=args.skip_tts,
+        )
     
     audio_path = Path(args.audio) if args.audio else None
     
