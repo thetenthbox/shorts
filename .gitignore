@@ -4,4 +4,12 @@
 .vscode/
 node_modules/
 dist/
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+*.pyc
+runs/
+renders/
+frames/
 
