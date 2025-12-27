@@ -163,7 +163,14 @@ def run_pipeline(
     # Save scene outputs (with optional debug overlay)
     scene_html = scene_result.html
     if debug:
-        voiceover_segments = final_timeline.get("voiceover_segments", [])
+        # Always read voiceover_segments from the original timeline.json written in Stage B.
+        # (refined_timeline.json can be a list of descriptions depending on the LLM output.)
+        timeline_path = runs_dir / "timeline.json"
+        if timeline_path.exists():
+            orig_timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
+            voiceover_segments = orig_timeline.get("voiceover_segments", [])
+        else:
+            voiceover_segments = final_timeline.get("voiceover_segments", []) if isinstance(final_timeline, dict) else []
         scene_html = inject_debug_overlay(scene_html, voiceover_segments)
         print("  -> Injected debug overlay")
     
@@ -230,14 +237,17 @@ def run_render_only(*, run_id: str, duration_s: int, skip_tts: bool) -> int:
         print(f"ERROR: {scene_path} not found", file=sys.stderr)
         return 1
     
-    # Load timeline for duration
-    timeline_path = runs_dir / "refined_timeline.json"
+    # Load timeline for duration (prefer timeline.json because refined_timeline.json may be a list)
+    timeline_path = runs_dir / "timeline.json"
     if not timeline_path.exists():
-        timeline_path = runs_dir / "timeline.json"
+        timeline_path = runs_dir / "refined_timeline.json"
     
     if timeline_path.exists():
         timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
-        duration_ms = timeline.get("duration_ms", duration_s * 1000)
+        if isinstance(timeline, dict):
+            duration_ms = timeline.get("duration_ms", duration_s * 1000)
+        else:
+            duration_ms = duration_s * 1000
     else:
         duration_ms = duration_s * 1000
     

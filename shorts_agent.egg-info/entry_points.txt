@@ -1,0 +1,2 @@
+[console_scripts]
+shorts = agent.cli:main
