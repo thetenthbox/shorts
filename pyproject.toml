@@ -19,6 +19,9 @@ dev = [
   "playwright>=1.47.0",
 ]
 
+[project.scripts]
+shorts = "agent.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["agent*"]

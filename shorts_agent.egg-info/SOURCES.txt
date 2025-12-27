@@ -8,10 +8,12 @@ agent/openrouter_client.py
 agent/qa.py
 agent/renderer.py
 agent/scene_builder.py
+agent/stages.py
 agent/timeline_compiler.py
 agent/timeline_schema.py
 shorts_agent.egg-info/PKG-INFO
 shorts_agent.egg-info/SOURCES.txt
 shorts_agent.egg-info/dependency_links.txt
+shorts_agent.egg-info/entry_points.txt
 shorts_agent.egg-info/requires.txt
 shorts_agent.egg-info/top_level.txt
