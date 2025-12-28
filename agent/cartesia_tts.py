@@ -70,11 +70,15 @@ class CartesiaTTS:
         out_wav_path: Path,
         model: str = "sonic-3",
         sample_rate_hz: int = 44100,
+        speed: float = 1.0,
     ) -> List[WordTimestamp]:
         """Synthesize audio and return word-level timestamps.
         
         Uses the SSE endpoint with add_timestamps=true.
         Returns list of WordTimestamp objects.
+        
+        Args:
+            speed: Speech speed multiplier (e.g., 1.2 = 20% faster)
         """
         out_wav_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -94,7 +98,7 @@ class CartesiaTTS:
                 "sample_rate": sample_rate_hz,
             },
             "add_timestamps": True,
-            "generation_config": {"speed": 1, "volume": 1},
+            "generation_config": {"speed": speed, "volume": 1},
         }
 
         audio_chunks: List[bytes] = []

@@ -61,6 +61,7 @@ def cmd_tts(args) -> int:
             text=audio_script,
             voice_id=CARTESIA_VOICE_ID,
             out_wav_path=wav_path,
+            speed=args.speed,
         )
         
         print(f"  -> Saved WAV to {wav_path}")
@@ -198,6 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
     tts_parser = subparsers.add_parser("tts", help="Generate TTS audio + word timestamps")
     tts_parser.add_argument("--id", required=True, help="Unique ID for this run")
     tts_parser.add_argument("--audio", required=True, help="Path to audio script markdown file")
+    tts_parser.add_argument("--speed", type=float, default=1.0, help="Speech speed (e.g., 1.2 = 20%% faster)")
     tts_parser.set_defaults(func=cmd_tts)
     
     # Render subcommand
@@ -213,6 +215,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser = subparsers.add_parser("run", help="Run TTS then render (scene.html must exist)")
     run_parser.add_argument("--id", required=True, help="Unique ID for this run")
     run_parser.add_argument("--audio", required=True, help="Path to audio script markdown file")
+    run_parser.add_argument("--speed", type=float, default=1.0, help="Speech speed (e.g., 1.2 = 20%% faster)")
     run_parser.add_argument("--duration", type=int, default=60, help="Min duration in seconds (default: 60)")
     run_parser.add_argument("--fps", type=int, default=30, help="Render FPS (default: 30)")
     run_parser.add_argument("--debug", action="store_true", default=True, help="Add debug overlay (default: on)")
