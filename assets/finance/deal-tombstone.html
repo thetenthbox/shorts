@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Deal Tombstone</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .tombstone {
+      width: 600px;
+      background: #fff;
+      border: 3px solid #1e3a5f;
+      padding: 50px;
+      text-align: center;
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .tombstone-type {
+      font-size: 18px;
+      font-weight: 700;
+      color: #6b7280;
+      letter-spacing: 4px;
+      margin-bottom: 30px;
+    }
+    
+    .tombstone-deal {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+    
+    .tombstone-company {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    
+    .tombstone-arrow {
+      font-size: 36px;
+      color: #1e40af;
+    }
+    
+    .tombstone-value {
+      font-family: Georgia, serif;
+      font-size: 56px;
+      font-weight: 700;
+      color: #1e40af;
+      margin-bottom: 30px;
+    }
+    
+    .tombstone-details {
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      margin-bottom: 30px;
+      padding: 20px 0;
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .detail-label {
+      display: block;
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    
+    .detail-value {
+      font-family: 'Consolas', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    
+    .tombstone-advisor {
+      font-size: 16px;
+      color: #6b7280;
+      font-style: italic;
+    }
+    
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="tombstone">
+    <div class="tombstone-type">ACQUISITION</div>
+    <div class="tombstone-deal">
+      <div class="tombstone-company">Acquirer Corp</div>
+      <div class="tombstone-arrow">→</div>
+      <div class="tombstone-company">Target Inc</div>
+    </div>
+    <div class="tombstone-value">$4.2 Billion</div>
+    <div class="tombstone-details">
+      <div class="detail">
+        <span class="detail-label">EV/EBITDA</span>
+        <span class="detail-value">12.5x</span>
+      </div>
+      <div class="detail">
+        <span class="detail-label">Premium</span>
+        <span class="detail-value">35%</span>
+      </div>
+    </div>
+    <div class="tombstone-advisor">Financial Advisor: Goldman Sachs</div>
+  </div>
+</body>
+</html>

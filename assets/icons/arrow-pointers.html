@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Arrow Pointers</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      gap: 80px;
+    }
+    
+    .arrow-pointer {
+      width: 80px;
+      height: 80px;
+      color: #1e40af;
+    }
+    
+    .arrow-pointer svg {
+      width: 100%;
+      height: 100%;
+      stroke: currentColor;
+      stroke-width: 3;
+      fill: none;
+    }
+    
+    .arrow-pointer.down { animation: bounceDown 0.8s ease-in-out infinite; }
+    .arrow-pointer.up { animation: bounceUp 0.8s ease-in-out infinite; }
+    .arrow-pointer.left { animation: bounceLeft 0.8s ease-in-out infinite; }
+    .arrow-pointer.right { animation: bounceRight 0.8s ease-in-out infinite; }
+    
+    .arrow-pointer.red { color: #dc2626; }
+    .arrow-pointer.green { color: #16a34a; }
+    
+    @keyframes bounceDown {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(15px); }
+    }
+    
+    @keyframes bounceUp {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+    
+    @keyframes bounceLeft {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(-15px); }
+    }
+    
+    @keyframes bounceRight {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(15px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="arrow-pointer down">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 4v16m0 0l-6-6m6 6l6-6"/>
+    </svg>
+  </div>
+  
+  <div class="arrow-pointer up red">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 20V4m0 0l-6 6m6-6l6 6"/>
+    </svg>
+  </div>
+  
+  <div class="arrow-pointer left green">
+    <svg viewBox="0 0 24 24">
+      <path d="M20 12H4m0 0l6-6m-6 6l6 6"/>
+    </svg>
+  </div>
+  
+  <div class="arrow-pointer right">
+    <svg viewBox="0 0 24 24">
+      <path d="M4 12h16m0 0l-6-6m6 6l-6 6"/>
+    </svg>
+  </div>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Comparison Boxes</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .comparison-container {
+      display: flex;
+      gap: 40px;
+    }
+    
+    .comparison-box {
+      width: 420px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      animation: slideIn 0.4s ease-out forwards;
+    }
+    
+    .comparison-box.wrong {
+      border: 3px solid #dc2626;
+      animation-name: slideLeft;
+    }
+    
+    .comparison-box.right {
+      border: 3px solid #16a34a;
+      animation-name: slideRight;
+      animation-delay: 0.2s;
+      opacity: 0;
+    }
+    
+    .comparison-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    
+    .comparison-box.wrong .comparison-icon {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    
+    .comparison-box.right .comparison-icon {
+      background: #f0fdf4;
+      color: #16a34a;
+    }
+    
+    .comparison-title {
+      font-family: Georgia, serif;
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+    
+    .comparison-box.wrong .comparison-title { color: #dc2626; }
+    .comparison-box.right .comparison-title { color: #16a34a; }
+    
+    .comparison-content {
+      font-size: 24px;
+      color: #374151;
+      line-height: 1.6;
+    }
+    
+    .comparison-content p {
+      margin-bottom: 12px;
+      padding-left: 20px;
+      position: relative;
+    }
+    
+    .comparison-content p::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+    }
+    
+    @keyframes slideLeft {
+      0% { opacity: 0; transform: translateX(-30px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    
+    @keyframes slideRight {
+      0% { opacity: 0; transform: translateX(30px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="comparison-container">
+    <div class="comparison-box wrong">
+      <div class="comparison-icon">✗</div>
+      <div class="comparison-title">Don't</div>
+      <div class="comparison-content">
+        <p>Argue back immediately</p>
+        <p>Get defensive about your work</p>
+        <p>Ignore the feedback</p>
+      </div>
+    </div>
+    
+    <div class="comparison-box right">
+      <div class="comparison-icon">✓</div>
+      <div class="comparison-title">Do</div>
+      <div class="comparison-content">
+        <p>Listen and take notes</p>
+        <p>Ask clarifying questions</p>
+        <p>Commit to a fix timeline</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, height=1920">
+  <title>Animation Timing Debug</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background: #111;
+      color: #fff;
+      font-family: 'SF Mono', 'Menlo', monospace;
+      overflow: hidden;
+    }
+    
+    .shorts-container {
+      width: 1080px;
+      height: 1920px;
+      position: relative;
+      background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+      overflow: hidden;
+    }
+    
+    /* Debug HUD */
+    .debug-hud {
+      position: absolute;
+      top: 40px;
+      left: 40px;
+      right: 40px;
+      background: rgba(0,0,0,0.8);
+      border: 2px solid #4ade80;
+      border-radius: 16px;
+      padding: 32px;
+      z-index: 100;
+    }
+    
+    .debug-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      font-size: 36px;
+    }
+    
+    .debug-label { color: #9ca3af; }
+    .debug-value { color: #4ade80; font-weight: bold; }
+    .debug-value.warn { color: #fbbf24; }
+    .debug-value.error { color: #ef4444; }
+    
+    /* Frame counter - large */
+    .frame-display {
+      position: absolute;
+      top: 400px;
+      left: 0;
+      right: 0;
+      text-align: center;
+    }
+    
+    .frame-number {
+      font-size: 200px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 60px rgba(74, 222, 128, 0.5);
+    }
+    
+    .frame-label {
+      font-size: 48px;
+      color: #6b7280;
+      margin-top: 20px;
+    }
+    
+    /* Test animations timeline */
+    .timeline-track {
+      position: absolute;
+      bottom: 300px;
+      left: 40px;
+      right: 40px;
+      height: 80px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 40px;
+      overflow: hidden;
+    }
+    
+    .timeline-progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4ade80, #22d3ee);
+      border-radius: 40px;
+      transition: none;
+    }
+    
+    .timeline-markers {
+      position: absolute;
+      bottom: 400px;
+      left: 40px;
+      right: 40px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 28px;
+      color: #6b7280;
+    }
+    
+    /* Test animation boxes */
+    .test-boxes {
+      position: absolute;
+      top: 900px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+    }
+    
+    .test-box {
+      width: 150px;
+      height: 150px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      opacity: 0;
+      transform: scale(0);
+    }
+    
+    .test-box.box1 { background: #ef4444; }
+    .test-box.box2 { background: #f59e0b; }
+    .test-box.box3 { background: #22c55e; }
+    .test-box.box4 { background: #3b82f6; }
+    .test-box.box5 { background: #a855f7; }
+    
+    /* Animation classes */
+    .test-box.show {
+      animation: boxPop 0.3s ease-out forwards;
+    }
+    
+    @keyframes boxPop {
+      0% { opacity: 0; transform: scale(0); }
+      70% { transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    
+    /* Drift indicator */
+    .drift-indicator {
+      position: absolute;
+      bottom: 100px;
+      left: 40px;
+      right: 40px;
+      text-align: center;
+    }
+    
+    .drift-bar {
+      height: 40px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .drift-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #fff;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    
+    .drift-actual {
+      position: absolute;
+      top: 8px;
+      bottom: 8px;
+      width: 24px;
+      background: #4ade80;
+      border-radius: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: left 0.1s;
+    }
+    
+    .drift-label {
+      margin-top: 16px;
+      font-size: 28px;
+      color: #6b7280;
+    }
+    
+    /* Expected vs Actual time */
+    .time-comparison {
+      position: absolute;
+      top: 1150px;
+      left: 40px;
+      right: 40px;
+      display: flex;
+      justify-content: space-around;
+    }
+    
+    .time-col {
+      text-align: center;
+    }
+    
+    .time-col .label {
+      font-size: 28px;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+    
+    .time-col .value {
+      font-size: 56px;
+      font-weight: bold;
+    }
+    
+    .time-col.expected .value { color: #60a5fa; }
+    .time-col.actual .value { color: #4ade80; }
+    .time-col.drift .value { color: #fbbf24; }
+    
+    /* Controls */
+    .controls {
+      position: absolute;
+      bottom: 500px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    
+    .ctrl-btn {
+      padding: 20px 40px;
+      font-size: 28px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: #3b82f6;
+      color: #fff;
+    }
+    
+    .ctrl-btn:hover { background: #2563eb; }
+    .ctrl-btn.active { background: #22c55e; }
+  </style>
+</head>
+<body>
+  <div class="shorts-container">
+    
+    <!-- Debug HUD -->
+    <div class="debug-hud">
+      <div class="debug-row">
+        <span class="debug-label">Elapsed Time:</span>
+        <span class="debug-value" id="elapsed">0.000s</span>
+      </div>
+      <div class="debug-row">
+        <span class="debug-label">Frame Count:</span>
+        <span class="debug-value" id="frameCount">0</span>
+      </div>
+      <div class="debug-row">
+        <span class="debug-label">Target FPS:</span>
+        <span class="debug-value" id="targetFps">30</span>
+      </div>
+      <div class="debug-row">
+        <span class="debug-label">Actual FPS:</span>
+        <span class="debug-value" id="actualFps">--</span>
+      </div>
+      <div class="debug-row">
+        <span class="debug-label">Frame Drift:</span>
+        <span class="debug-value" id="frameDrift">0ms</span>
+      </div>
+    </div>
+    
+    <!-- Large frame display -->
+    <div class="frame-display">
+      <div class="frame-number" id="bigFrame">0</div>
+      <div class="frame-label">FRAME</div>
+    </div>
+    
+    <!-- Test animation boxes (appear at 1s, 2s, 3s, 4s, 5s) -->
+    <div class="test-boxes">
+      <div class="test-box box1" id="box1">1s</div>
+      <div class="test-box box2" id="box2">2s</div>
+      <div class="test-box box3" id="box3">3s</div>
+      <div class="test-box box4" id="box4">4s</div>
+      <div class="test-box box5" id="box5">5s</div>
+    </div>
+    
+    <!-- Time comparison -->
+    <div class="time-comparison">
+      <div class="time-col expected">
+        <div class="label">EXPECTED</div>
+        <div class="value" id="expectedTime">0.00s</div>
+      </div>
+      <div class="time-col actual">
+        <div class="label">ACTUAL</div>
+        <div class="value" id="actualTime">0.00s</div>
+      </div>
+      <div class="time-col drift">
+        <div class="label">DRIFT</div>
+        <div class="value" id="driftTime">0ms</div>
+      </div>
+    </div>
+    
+    <!-- Timeline -->
+    <div class="timeline-markers">
+      <span>0s</span>
+      <span>2s</span>
+      <span>4s</span>
+      <span>6s</span>
+      <span>8s</span>
+      <span>10s</span>
+    </div>
+    <div class="timeline-track">
+      <div class="timeline-progress" id="progress"></div>
+    </div>
+    
+    <!-- Drift indicator -->
+    <div class="drift-indicator">
+      <div class="drift-bar">
+        <div class="drift-marker"></div>
+        <div class="drift-actual" id="driftActual"></div>
+      </div>
+      <div class="drift-label">Frame Timing Drift (±100ms range)</div>
+    </div>
+    
+    <!-- Controls -->
+    <div class="controls">
+      <button class="ctrl-btn" id="playBtn">▶ PLAY</button>
+      <button class="ctrl-btn" id="resetBtn">↺ RESET</button>
+    </div>
+    
+  </div>
+  
+  <script>
+    // Configuration
+    const TARGET_FPS = 30;
+    const DURATION_MS = 10000; // 10 seconds
+    const FRAME_INTERVAL = 1000 / TARGET_FPS; // 33.33ms
+    
+    // State
+    let startTime = null;
+    let frameCount = 0;
+    let animationId = null;
+    let lastFrameTime = 0;
+    let fpsHistory = [];
+    
+    // DOM elements
+    const els = {
+      elapsed: document.getElementById('elapsed'),
+      frameCount: document.getElementById('frameCount'),
+      targetFps: document.getElementById('targetFps'),
+      actualFps: document.getElementById('actualFps'),
+      frameDrift: document.getElementById('frameDrift'),
+      bigFrame: document.getElementById('bigFrame'),
+      progress: document.getElementById('progress'),
+      expectedTime: document.getElementById('expectedTime'),
+      actualTime: document.getElementById('actualTime'),
+      driftTime: document.getElementById('driftTime'),
+      driftActual: document.getElementById('driftActual'),
+      playBtn: document.getElementById('playBtn'),
+      boxes: [1,2,3,4,5].map(i => document.getElementById('box' + i)),
+    };
+    
+    // Box trigger times (in ms)
+    const boxTriggers = [1000, 2000, 3000, 4000, 5000];
+    const boxTriggered = [false, false, false, false, false];
+    
+    function update(timestamp) {
+      if (!startTime) startTime = timestamp;
+      
+      const elapsed = timestamp - startTime;
+      frameCount++;
+      
+      // Calculate expected frame based on elapsed time
+      const expectedFrame = Math.floor(elapsed / FRAME_INTERVAL);
+      const frameDrift = frameCount - expectedFrame;
+      const driftMs = frameDrift * FRAME_INTERVAL;
+      
+      // Calculate actual FPS
+      if (lastFrameTime > 0) {
+        const delta = timestamp - lastFrameTime;
+        const instantFps = 1000 / delta;
+        fpsHistory.push(instantFps);
+        if (fpsHistory.length > 30) fpsHistory.shift();
+        const avgFps = fpsHistory.reduce((a,b) => a+b, 0) / fpsHistory.length;
+        els.actualFps.textContent = avgFps.toFixed(1);
+        
+        // Color code FPS
+        if (avgFps < TARGET_FPS - 5) {
+          els.actualFps.className = 'debug-value error';
+        } else if (avgFps < TARGET_FPS - 2) {
+          els.actualFps.className = 'debug-value warn';
+        } else {
+          els.actualFps.className = 'debug-value';
+        }
+      }
+      lastFrameTime = timestamp;
+      
+      // Update HUD
+      els.elapsed.textContent = (elapsed / 1000).toFixed(3) + 's';
+      els.frameCount.textContent = frameCount;
+      els.bigFrame.textContent = frameCount;
+      els.frameDrift.textContent = (driftMs > 0 ? '+' : '') + driftMs.toFixed(1) + 'ms';
+      
+      // Color code drift
+      if (Math.abs(driftMs) > 50) {
+        els.frameDrift.className = 'debug-value error';
+      } else if (Math.abs(driftMs) > 20) {
+        els.frameDrift.className = 'debug-value warn';
+      } else {
+        els.frameDrift.className = 'debug-value';
+      }
+      
+      // Update time comparison
+      const expectedTimeS = (frameCount * FRAME_INTERVAL) / 1000;
+      els.expectedTime.textContent = expectedTimeS.toFixed(2) + 's';
+      els.actualTime.textContent = (elapsed / 1000).toFixed(2) + 's';
+      els.driftTime.textContent = (driftMs > 0 ? '+' : '') + driftMs.toFixed(0) + 'ms';
+      
+      // Update progress bar
+      const progressPct = Math.min(100, (elapsed / DURATION_MS) * 100);
+      els.progress.style.width = progressPct + '%';
+      
+      // Update drift indicator (center = 0, range ±100ms)
+      const driftPct = 50 + (driftMs / 200) * 50; // ±100ms = ±50%
+      els.driftActual.style.left = Math.max(5, Math.min(95, driftPct)) + '%';
+      
+      // Trigger test boxes at specific times
+      boxTriggers.forEach((triggerTime, i) => {
+        if (!boxTriggered[i] && elapsed >= triggerTime) {
+          els.boxes[i].classList.add('show');
+          boxTriggered[i] = true;
+          console.log(`Box ${i+1} triggered at ${elapsed.toFixed(1)}ms (expected: ${triggerTime}ms, drift: ${(elapsed - triggerTime).toFixed(1)}ms)`);
+        }
+      });
+      
+      // Continue animation
+      if (elapsed < DURATION_MS) {
+        animationId = requestAnimationFrame(update);
+      } else {
+        console.log(`Animation complete. Final stats:`);
+        console.log(`  Total frames: ${frameCount}`);
+        console.log(`  Expected frames: ${Math.floor(DURATION_MS / FRAME_INTERVAL)}`);
+        console.log(`  Final drift: ${driftMs.toFixed(1)}ms`);
+        els.playBtn.textContent = '▶ PLAY';
+        els.playBtn.classList.remove('active');
+      }
+    }
+    
+    function reset() {
+      if (animationId) cancelAnimationFrame(animationId);
+      startTime = null;
+      frameCount = 0;
+      lastFrameTime = 0;
+      fpsHistory = [];
+      boxTriggered.fill(false);
+      
+      els.elapsed.textContent = '0.000s';
+      els.frameCount.textContent = '0';
+      els.bigFrame.textContent = '0';
+      els.actualFps.textContent = '--';
+      els.frameDrift.textContent = '0ms';
+      els.expectedTime.textContent = '0.00s';
+      els.actualTime.textContent = '0.00s';
+      els.driftTime.textContent = '0ms';
+      els.progress.style.width = '0%';
+      els.driftActual.style.left = '50%';
+      els.playBtn.textContent = '▶ PLAY';
+      els.playBtn.classList.remove('active');
+      
+      els.boxes.forEach(box => box.classList.remove('show'));
+    }
+    
+    function play() {
+      reset();
+      els.playBtn.textContent = '⏸ RUNNING';
+      els.playBtn.classList.add('active');
+      animationId = requestAnimationFrame(update);
+    }
+    
+    // Button handlers
+    els.playBtn.addEventListener('click', play);
+    document.getElementById('resetBtn').addEventListener('click', reset);
+    
+    // Expose for Playwright
+    window.__shortsPlayAll = play;
+    window.__shortsDuration = DURATION_MS;
+    
+    // Log system info
+    console.log('=== Animation Timing Debug ===');
+    console.log(`Target FPS: ${TARGET_FPS}`);
+    console.log(`Frame interval: ${FRAME_INTERVAL.toFixed(2)}ms`);
+    console.log(`Duration: ${DURATION_MS}ms`);
+    console.log(`Expected frames: ${Math.floor(DURATION_MS / FRAME_INTERVAL)}`);
+    console.log(`Screen refresh rate: ${window.screen?.refreshRate || 'unknown'}`);
+  </script>
+</body>
+</html>
+

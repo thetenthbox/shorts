@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Quote Card</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .quote-card {
+      width: 850px;
+      background: #fff;
+      padding: 60px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      border-left: 6px solid #1e40af;
+    }
+    
+    .quote-mark {
+      font-family: Georgia, serif;
+      font-size: 120px;
+      color: #1e40af;
+      line-height: 0.5;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+    
+    .quote-text {
+      font-family: Georgia, serif;
+      font-size: 42px;
+      color: #1f2937;
+      line-height: 1.5;
+      margin-bottom: 40px;
+    }
+    
+    .quote-attribution {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .quote-attribution::before {
+      content: '';
+      width: 40px;
+      height: 3px;
+      background: #1e40af;
+    }
+    
+    .quote-author {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    
+    .quote-role {
+      font-size: 20px;
+      color: #6b7280;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="quote-card">
+    <div class="quote-mark">"</div>
+    <div class="quote-text">The best investment you can make is in yourself.</div>
+    <div class="quote-attribution">
+      <div class="quote-author">Warren Buffett</div>
+      <div class="quote-role">CEO, Berkshire Hathaway</div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Bubbles</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .chat-container {
+      width: 700px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .chat-bubble {
+      max-width: 80%;
+      padding: 20px 28px;
+      border-radius: 24px;
+      animation: chatSlideUp 0.3s ease-out forwards;
+    }
+    
+    .chat-bubble.received {
+      align-self: flex-start;
+      background: #e5e7eb;
+      border-bottom-left-radius: 4px;
+    }
+    
+    .chat-bubble.sent {
+      align-self: flex-end;
+      background: #1e40af;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .bubble-content {
+      font-size: 28px;
+      line-height: 1.4;
+    }
+    
+    .chat-bubble.received .bubble-content { color: #1f2937; }
+    .chat-bubble.sent .bubble-content { color: #fff; }
+    
+    .bubble-time {
+      font-size: 14px;
+      margin-top: 8px;
+    }
+    
+    .chat-bubble.received .bubble-time { color: #6b7280; }
+    .chat-bubble.sent .bubble-time { color: rgba(255,255,255,0.7); text-align: right; }
+    
+    @keyframes chatSlideUp {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    
+    .chat-bubble:nth-child(1) { animation-delay: 0s; }
+    .chat-bubble:nth-child(2) { animation-delay: 0.2s; }
+    .chat-bubble:nth-child(3) { animation-delay: 0.4s; }
+    .chat-bubble:nth-child(4) { animation-delay: 0.6s; }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-bubble received">
+      <div class="bubble-content">Hey, did you finish the model?</div>
+      <div class="bubble-time">2:34 PM</div>
+    </div>
+    
+    <div class="chat-bubble sent">
+      <div class="bubble-content">Yes, just sent it over for review</div>
+      <div class="bubble-time">2:35 PM</div>
+    </div>
+    
+    <div class="chat-bubble received">
+      <div class="bubble-content">There are some issues with the WACC assumptions</div>
+      <div class="bubble-time">2:36 PM</div>
+    </div>
+    
+    <div class="chat-bubble sent">
+      <div class="bubble-content">On it. Will fix and resend by EOD</div>
+      <div class="bubble-time">2:36 PM</div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Step Checklist</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .checklist-container {
+      width: 800px;
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 50px;
+    }
+    
+    .checklist-title {
+      font-family: Georgia, serif;
+      font-size: 42px;
+      font-weight: 700;
+      color: #1f2937;
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 24px 0;
+      border-bottom: 1px solid #f3f4f6;
+      animation: slideIn 0.4s ease-out forwards;
+    }
+    
+    .checklist-item:nth-child(2) { animation-delay: 0.1s; }
+    .checklist-item:nth-child(3) { animation-delay: 0.2s; }
+    .checklist-item:nth-child(4) { animation-delay: 0.3s; }
+    .checklist-item:nth-child(5) { animation-delay: 0.4s; }
+    
+    .step-number {
+      width: 48px;
+      height: 48px;
+      background: #1e40af;
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    
+    .step-content { flex: 1; }
+    
+    .step-text {
+      font-family: Georgia, serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    
+    .step-subtext {
+      font-size: 20px;
+      color: #6b7280;
+      font-style: italic;
+    }
+    
+    .step-check {
+      width: 40px;
+      height: 40px;
+      background: #16a34a;
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      animation: checkPop 0.3s ease-out forwards;
+      animation-delay: 0.8s;
+      opacity: 0;
+    }
+    
+    @keyframes slideIn {
+      0% { opacity: 0; transform: translateX(-20px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    
+    @keyframes checkPop {
+      0% { opacity: 0; transform: scale(0); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="checklist-container">
+    <div class="checklist-title">The Playbook</div>
+    
+    <div class="checklist-item">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <div class="step-text">Ask for the one thing</div>
+        <div class="step-subtext">"What's the biggest issue?"</div>
+      </div>
+      <div class="step-check">✓</div>
+    </div>
+    
+    <div class="checklist-item">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <div class="step-text">Repeat it back</div>
+        <div class="step-subtext">"So the concern is X because Y?"</div>
+      </div>
+      <div class="step-check">✓</div>
+    </div>
+    
+    <div class="checklist-item">
+      <div class="step-number">3</div>
+      <div class="step-content">
+        <div class="step-text">Commit to a timeline</div>
+        <div class="step-subtext">"I'll fix this and resend by EOD"</div>
+      </div>
+      <div class="step-check">✓</div>
+    </div>
+    
+    <div class="checklist-item">
+      <div class="step-number">4</div>
+      <div class="step-content">
+        <div class="step-text">Send a quick recap</div>
+        <div class="step-subtext">What changed, why, what to confirm</div>
+      </div>
+      <div class="step-check">✓</div>
+    </div>
+  </div>
+</body>
+</html>

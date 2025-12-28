@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Org Chart</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .org-chart {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .org-card {
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px 40px;
+      text-align: center;
+      min-width: 280px;
+    }
+    
+    .org-card.md { border-color: #1e40af; background: #eff6ff; }
+    .org-card.director { border-color: #7c3aed; background: #f5f3ff; }
+    .org-card.vp { border-color: #16a34a; background: #f0fdf4; }
+    .org-card.associate { border-color: #ea580c; background: #fff7ed; }
+    .org-card.analyst { border-color: #6b7280; background: #f9fafb; }
+    
+    .org-title {
+      font-family: Georgia, serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    
+    .org-comp {
+      font-family: 'Consolas', monospace;
+      font-size: 18px;
+      color: #6b7280;
+    }
+    
+    .org-connector {
+      width: 3px;
+      height: 20px;
+      background: #d1d5db;
+    }
+  </style>
+</head>
+<body>
+  <div class="org-chart">
+    <div class="org-card md">
+      <div class="org-title">Managing Director</div>
+      <div class="org-comp">$1M - $5M+</div>
+    </div>
+    <div class="org-connector"></div>
+    <div class="org-card director">
+      <div class="org-title">Director / ED</div>
+      <div class="org-comp">$500K - $1M</div>
+    </div>
+    <div class="org-connector"></div>
+    <div class="org-card vp">
+      <div class="org-title">Vice President</div>
+      <div class="org-comp">$300K - $500K</div>
+    </div>
+    <div class="org-connector"></div>
+    <div class="org-card associate">
+      <div class="org-title">Associate</div>
+      <div class="org-comp">$200K - $350K</div>
+    </div>
+    <div class="org-connector"></div>
+    <div class="org-card analyst">
+      <div class="org-title">Analyst</div>
+      <div class="org-comp">$150K - $200K</div>
+    </div>
+  </div>
+</body>
+</html>

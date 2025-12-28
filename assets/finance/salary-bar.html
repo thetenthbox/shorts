@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Salary Bars</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .salary-chart {
+      width: 800px;
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 40px;
+    }
+    
+    .salary-title {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: #1f2937;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .salary-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    
+    .salary-label {
+      width: 180px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #374151;
+      text-align: right;
+    }
+    
+    .salary-bar-track {
+      flex: 1;
+      height: 32px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .salary-bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      animation: growBar 1s ease-out forwards;
+    }
+    
+    .salary-bar-fill.md { background: linear-gradient(90deg, #1e40af, #3b82f6); }
+    .salary-bar-fill.vp { background: linear-gradient(90deg, #16a34a, #22c55e); }
+    .salary-bar-fill.associate { background: linear-gradient(90deg, #ea580c, #f97316); }
+    .salary-bar-fill.analyst { background: linear-gradient(90deg, #6b7280, #9ca3af); }
+    
+    .salary-value {
+      width: 100px;
+      font-family: 'Consolas', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    
+    @keyframes growBar {
+      from { width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="salary-chart">
+    <div class="salary-title">Total Compensation by Level</div>
+    
+    <div class="salary-row">
+      <div class="salary-label">Managing Director</div>
+      <div class="salary-bar-track">
+        <div class="salary-bar-fill md" style="width: 100%;"></div>
+      </div>
+      <div class="salary-value">$2.5M</div>
+    </div>
+    
+    <div class="salary-row">
+      <div class="salary-label">Vice President</div>
+      <div class="salary-bar-track">
+        <div class="salary-bar-fill vp" style="width: 40%;"></div>
+      </div>
+      <div class="salary-value">$400K</div>
+    </div>
+    
+    <div class="salary-row">
+      <div class="salary-label">Associate</div>
+      <div class="salary-bar-track">
+        <div class="salary-bar-fill associate" style="width: 28%;"></div>
+      </div>
+      <div class="salary-value">$275K</div>
+    </div>
+    
+    <div class="salary-row">
+      <div class="salary-label">Analyst</div>
+      <div class="salary-bar-track">
+        <div class="salary-bar-fill analyst" style="width: 18%;"></div>
+      </div>
+      <div class="salary-value">$175K</div>
+    </div>
+  </div>
+</body>
+</html>

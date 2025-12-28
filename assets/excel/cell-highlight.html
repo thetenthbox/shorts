@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Cell Highlight</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      gap: 40px;
+    }
+    
+    .highlight-cell {
+      background: #fff;
+      border: 3px solid #e5e7eb;
+      padding: 24px 40px;
+      font-family: 'Consolas', monospace;
+      font-size: 48px;
+      font-weight: 600;
+      color: #1f2937;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .highlight-cell:hover {
+      transform: scale(1.05);
+    }
+    
+    .highlight-cell.error {
+      border-color: #dc2626;
+      background: #fef2f2;
+      animation: cellFlashRed 0.3s ease-in-out;
+    }
+    
+    .highlight-cell.success {
+      border-color: #16a34a;
+      background: #f0fdf4;
+      animation: cellFlashGreen 0.3s ease-in-out;
+    }
+    
+    .highlight-cell.warning {
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+    
+    @keyframes cellFlashRed {
+      0%, 100% { background: #fef2f2; }
+      50% { background: #fca5a5; }
+    }
+    
+    @keyframes cellFlashGreen {
+      0%, 100% { background: #f0fdf4; }
+      50% { background: #86efac; }
+    }
+  </style>
+</head>
+<body>
+  <div class="highlight-cell">$2.4M</div>
+  <div class="highlight-cell success">$3.1M</div>
+  <div class="highlight-cell error">($500K)</div>
+  <div class="highlight-cell warning">$1.2M</div>
+</body>
+</html>

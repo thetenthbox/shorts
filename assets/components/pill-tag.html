@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Pill Tags</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .pill-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      max-width: 600px;
+    }
+    
+    .pill-tag {
+      font-size: 28px;
+      font-weight: 700;
+      padding: 16px 36px;
+      border-radius: 50px;
+      animation: popIn 0.3s ease-out forwards;
+    }
+    
+    .pill-tag:nth-child(2) { animation-delay: 0.1s; }
+    .pill-tag:nth-child(3) { animation-delay: 0.2s; }
+    .pill-tag:nth-child(4) { animation-delay: 0.3s; }
+    .pill-tag:nth-child(5) { animation-delay: 0.4s; }
+    
+    .pill-tag.blue { background: #1e40af; color: #fff; }
+    .pill-tag.green { background: #16a34a; color: #fff; }
+    .pill-tag.purple { background: #7c3aed; color: #fff; }
+    .pill-tag.orange { background: #ea580c; color: #fff; }
+    .pill-tag.dark { background: #1f2937; color: #fff; }
+    
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="pill-container">
+    <div class="pill-tag blue">ANALYST</div>
+    <div class="pill-tag green">ASSOCIATE</div>
+    <div class="pill-tag purple">VP</div>
+    <div class="pill-tag orange">DIRECTOR</div>
+    <div class="pill-tag dark">MD</div>
+  </div>
+</body>
+</html>

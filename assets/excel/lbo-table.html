@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>LBO Table</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: system-ui, sans-serif;
+    }
+    
+    .lbo-container {
+      width: 800px;
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    
+    .lbo-section {
+      margin-bottom: 30px;
+    }
+    
+    .lbo-header {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: #1f2937;
+      border-bottom: 2px solid #1e40af;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .lbo-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 24px;
+      color: #374151;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .lbo-row.total {
+      font-weight: 700;
+      color: #1f2937;
+      border-bottom: 2px solid #e5e7eb;
+      background: #f9fafb;
+      margin: 0 -20px;
+      padding: 12px 20px;
+    }
+    
+    .lbo-returns {
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 2px solid #e5e7eb;
+    }
+    
+    .return-metric {
+      text-align: center;
+    }
+    
+    .return-value {
+      display: block;
+      font-family: Georgia, serif;
+      font-size: 56px;
+      font-weight: 700;
+      color: #1e40af;
+    }
+    
+    .return-label {
+      font-size: 20px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="lbo-container">
+    <div class="lbo-section">
+      <div class="lbo-header">Sources</div>
+      <div class="lbo-row">
+        <span>Senior Debt</span>
+        <span>$400M</span>
+      </div>
+      <div class="lbo-row">
+        <span>Mezzanine</span>
+        <span>$100M</span>
+      </div>
+      <div class="lbo-row">
+        <span>Equity</span>
+        <span>$200M</span>
+      </div>
+      <div class="lbo-row total">
+        <span>Total Sources</span>
+        <span>$700M</span>
+      </div>
+    </div>
+    
+    <div class="lbo-section">
+      <div class="lbo-header">Uses</div>
+      <div class="lbo-row">
+        <span>Purchase Price</span>
+        <span>$650M</span>
+      </div>
+      <div class="lbo-row">
+        <span>Transaction Fees</span>
+        <span>$30M</span>
+      </div>
+      <div class="lbo-row">
+        <span>Financing Fees</span>
+        <span>$20M</span>
+      </div>
+      <div class="lbo-row total">
+        <span>Total Uses</span>
+        <span>$700M</span>
+      </div>
+    </div>
+    
+    <div class="lbo-returns">
+      <div class="return-metric">
+        <span class="return-value">2.5x</span>
+        <span class="return-label">MOIC</span>
+      </div>
+      <div class="return-metric">
+        <span class="return-value">22%</span>
+        <span class="return-label">IRR</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

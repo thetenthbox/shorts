@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Income Statement</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+    }
+    
+    .income-container {
+      width: 700px;
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .income-header {
+      background: #1e3a5f;
+      color: #fff;
+      font-family: Georgia, serif;
+      font-size: 28px;
+      font-weight: 600;
+      padding: 20px 30px;
+      text-align: center;
+    }
+    
+    .income-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Consolas', monospace;
+      font-size: 22px;
+    }
+    
+    .income-table td {
+      padding: 14px 30px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .income-table .line-item {
+      color: #374151;
+    }
+    
+    .income-table .line-item.indent {
+      padding-left: 60px;
+      color: #6b7280;
+    }
+    
+    .income-table .amount {
+      text-align: right;
+      color: #1f2937;
+    }
+    
+    .income-table .amount.negative {
+      color: #dc2626;
+    }
+    
+    .income-table .subtotal td {
+      background: #f9fafb;
+      font-weight: 600;
+      border-top: 1px solid #e5e7eb;
+    }
+    
+    .income-table .total td {
+      background: #1e40af;
+      color: #fff;
+      font-weight: 700;
+      font-size: 24px;
+    }
+    
+    .income-table .total .amount {
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="income-container">
+    <div class="income-header">Income Statement (FY 2024)</div>
+    <table class="income-table">
+      <tr>
+        <td class="line-item">Revenue</td>
+        <td class="amount">$1,200,000</td>
+      </tr>
+      <tr>
+        <td class="line-item indent">Cost of Goods Sold</td>
+        <td class="amount negative">(720,000)</td>
+      </tr>
+      <tr class="subtotal">
+        <td class="line-item">Gross Profit</td>
+        <td class="amount">$480,000</td>
+      </tr>
+      <tr>
+        <td class="line-item indent">SG&A</td>
+        <td class="amount negative">(180,000)</td>
+      </tr>
+      <tr>
+        <td class="line-item indent">D&A</td>
+        <td class="amount negative">(60,000)</td>
+      </tr>
+      <tr class="subtotal">
+        <td class="line-item">Operating Income</td>
+        <td class="amount">$240,000</td>
+      </tr>
+      <tr>
+        <td class="line-item indent">Interest Expense</td>
+        <td class="amount negative">(40,000)</td>
+      </tr>
+      <tr class="subtotal">
+        <td class="line-item">EBT</td>
+        <td class="amount">$200,000</td>
+      </tr>
+      <tr>
+        <td class="line-item indent">Taxes (25%)</td>
+        <td class="amount negative">(50,000)</td>
+      </tr>
+      <tr class="total">
+        <td class="line-item">Net Income</td>
+        <td class="amount">$150,000</td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>
