@@ -1,8 +1,8 @@
 # 1learner Shorts
 
-**Automated HTML animation → MP4 pipeline for YouTube Shorts.**
+**Simple HTML animation → MP4 pipeline for YouTube Shorts.**
 
-Turn an audio script into a fully rendered vertical video (1080×1920) with voiceover — no video editor required.
+Create vertical videos (1080×1920) with synchronized voiceover. You write the HTML animations, the tool handles TTS and rendering.
 
 ---
 
@@ -19,137 +19,99 @@ source .venv/bin/activate
 pip install -e '.[dev]'
 playwright install chromium
 
-# 3. Set up API keys
-cat > .env << 'EOF'
-OPENROUTER_API_KEY=your_openrouter_key
-CARTESIA_API_KEY=your_cartesia_key
-CARTESIA_VOICE_ID=0ad65e7f-006c-47cf-bd31-52279d487913
-EOF
+# 3. Set up API key
+echo "CARTESIA_API_KEY=your_cartesia_key" > .env
 
-# 4. Run the pipeline
-source .env && export OPENROUTER_API_KEY CARTESIA_API_KEY CARTESIA_VOICE_ID
-shorts --id my_first_short --audio audio_scripts/audio_script1.md --duration 30
+# 4. Generate TTS
+set -a && source .env && set +a
+shorts tts --id my_short --audio audio_scripts/my_script.md
+
+# 5. Create scene.html manually (with timestamps from tts_words.json)
+# ... edit runs/my_short/scene.html ...
+
+# 6. Render MP4
+shorts render --id my_short
 ```
 
 **Outputs:**
-- `renders/my_first_short.mp4` — final video with audio
-- `renders/my_first_short.wav` — voiceover audio
-- `runs/my_first_short/` — all intermediate files
+- `renders/my_short.mp4` — final video with audio
+- `renders/my_short.wav` — voiceover audio
+- `runs/my_short/tts_words.json` — word-level timestamps
 
 ---
 
-## How It Works
+## Workflow
 
 ```
-Audio Script ─┬─► Stage D0: TTS + Timestamps (Cartesia Sonic 3)
-              │       ├── renders/<id>.wav
-              │       ├── runs/<id>/tts_words.json
-              │       └── runs/<id>/voiceover_segments.json
-              │
-              ├─► Stage B: Storyboard (GPT-5, timestamp-driven)
-              │       ├── video_script.md      (voiceover timing tables)
-              │       └── timeline.json        (events using the authoritative timestamps)
-              │
-              ├─► Stage B2: Detail Pass (GPT-5, visual-only)
-              │       ├── detailed_script.md   (visual descriptions/specs)
-              │       └── refined_timeline.json (must not change timing)
-              │
-              ├─► Stage C: Scene Builder (Sonnet 4.5)
-              │       └── scene.html           (runnable animation)
-              │
-              └─► Stage E: Render (Playwright + ffmpeg)
-                      └── final.mp4
+┌─────────────────┐     ┌───────────────┐     ┌─────────────────┐
+│ audio_script.md │────▶│  shorts tts   │────▶│  tts_words.json │
+└─────────────────┘     └───────────────┘     │  + WAV file     │
+                                              └─────────────────┘
+                                                      │
+                                                      ▼
+┌─────────────────┐                           ┌─────────────────┐
+│  scene.html     │◀──────── You create ──────│  Use timestamps │
+│  (animations)   │         manually          │  for timing     │
+└─────────────────┘                           └─────────────────┘
+        │
+        ▼
+┌───────────────┐     ┌─────────────────┐
+│ shorts render │────▶│  final.mp4      │
+└───────────────┘     └─────────────────┘
 ```
 
-### Pipeline Stages
-
-| Stage | Model | What It Does | Output |
-|-------|-------|--------------|--------|
-| **D0: TTS + Timestamps (first)** | Cartesia Sonic 3 | Synthesizes voiceover audio AND word timestamps. We convert these to `voiceover_segments` which become the authoritative timing for the rest of the pipeline. | `renders/<id>.wav`, `runs/<id>/tts_words.json`, `runs/<id>/voiceover_segments.json` |
-| **B: Storyboard (timestamp-driven)** | GPT-5 | Builds `timeline.json` using the authoritative `voiceover_segments` timestamps (no guesswork). | `video_script.md`, `timeline.json` |
-| **B2: Detail Pass (visual-only)** | GPT-5 | Adds detailed visual descriptions/specs. **Must not change timing** (no changes to `t_ms` or segment times). | `detailed_script.md`, `refined_timeline.json` |
-| **C: Scene Builder** | Sonnet 4.5 | Generates complete HTML/CSS/JS from timeline + detailed script. | `scene.html`, `scene_spec.json` |
-| **E: Render** | Playwright + ffmpeg | Captures frames from the HTML animation using headless Chromium. Encodes to MP4 and muxes with audio. | `video.mp4`, `final.mp4` |
-
-### Key Concept: Voiceover-Driven Timing
-
-The entire animation is synced to the voiceover.
-
-Stage **D0** (Cartesia) produces word-level timestamps, which we convert into `voiceover_segments` (authoritative timing).
-Stage **B** then builds the animation timeline using those timestamps.
-
-Example voiceover timing table:
-
-```markdown
-| Time | Words |
-|------|-------|
-| 0.0s - 1.2s | "Let's say you're working" |
-| 1.2s - 2.8s | "at a bulge bracket investment bank" |
-| 2.8s - 4.0s | "on Wall Street." |
-```
-
-And animation triggers tied to specific words/phrases:
-
-```json
-{"t_ms": 2800, "op": "textSet", "target": "titleText", "value": "WALL STREET", "trigger": "Wall Street"}
-```
-
-Stage B2 then describes exactly what happens visually:
-
-> "At 2.8s, when the voiceover says 'on Wall Street,' bold centered text 'WALL STREET' fades up smoothly from 20px below to rest at screen center (duration 500ms, ease-out). The font is CMU Serif, 56px, dark grey (#1f2937)..."
+1. **Write audio script** — what the voiceover will say
+2. **Run TTS** — get WAV audio + word-level timestamps
+3. **Create scene.html** — build animations using the timestamps for sync
+4. **Render** — capture frames and encode to MP4 with audio
 
 ---
 
 ## CLI Reference
 
-```bash
-shorts --id <run_id> --audio <path> [options]
-```
-
-### Required Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `--id` | Unique identifier for this run (used for output filenames) |
-| `--audio` | Path to audio script markdown file (not needed with `--render-only`) |
-
-### Optional Arguments
-
-| Argument | Default | Description |
-|----------|---------|-------------|
-| `--duration` | 60 | Target video duration in seconds |
-| `--skip-tts` | false | Skip voiceover generation |
-| `--no-tts-first` | false | Disable timestamp-driven timing (use estimated timings) |
-| `--skip-render` | false | Skip Playwright/ffmpeg rendering |
-| `--render-only` | false | Only render MP4 from existing `runs/<id>/scene.html` |
-| `--rebuild-html` | false | Rebuild `runs/<id>/scene.html` from existing `detailed_script.md` + timeline |
-| `--debug` | true | Enable debug overlay (timer + current script line) |
-| `--no-debug` | false | Disable debug overlay |
-
-### Examples
+### Generate TTS
 
 ```bash
-# Full pipeline (20 second video)
-shorts --id demo --audio audio_scripts/audio_script1.md --duration 20
-
-# Generate scripts + HTML only (no TTS, no render)
-shorts --id demo --audio audio_scripts/audio_script1.md --skip-tts --skip-render
-
-# Generate scripts + HTML + TTS (no render)
-shorts --id demo --audio audio_scripts/audio_script1.md --skip-render
-
-# Re-render after editing scene.html manually
-shorts --id demo --render-only
-
-# Rebuild HTML (from detailed_script + timeline) and render
-shorts --id demo --rebuild-html
-
-# Rebuild HTML (no render) with debug overlay (default-on)
-shorts --id demo --rebuild-html --skip-render
-
-# Disable debug overlay
-shorts --id demo --rebuild-html --skip-render --no-debug
+shorts tts --id <run_id> --audio <path>
 ```
+
+Generates voiceover audio and word-level timestamps.
+
+**Outputs:**
+- `renders/<run_id>.wav` — audio file
+- `runs/<run_id>/tts_words.json` — word timestamps
+- `runs/<run_id>/audio_script.md` — copy of input script
+
+### Render MP4
+
+```bash
+shorts render --id <run_id> [options]
+```
+
+Renders `scene.html` to MP4, optionally muxing with audio.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--duration` | 60 | Minimum duration in seconds |
+| `--fps` | 30 | Frames per second |
+| `--debug` | on | Show timer + current word overlay |
+| `--no-debug` | — | Disable debug overlay |
+
+**Requires:**
+- `runs/<run_id>/scene.html` — your animation file
+- `renders/<run_id>.wav` — audio (optional, for muxing)
+
+**Outputs:**
+- `renders/<run_id>.mp4` — final video
+- `runs/<run_id>/frames/` — captured PNGs
+
+### Full Pipeline
+
+```bash
+shorts run --id <run_id> --audio <path> [options]
+```
+
+Runs TTS first, then render (if scene.html exists).
 
 ---
 
@@ -159,20 +121,15 @@ shorts --id demo --rebuild-html --skip-render --no-debug
 Shorts/
 ├── agent/                    # Python pipeline code
 │   ├── cli.py                # CLI entry point
-│   ├── stages.py             # LLM stages (storyboard, scene builder)
-│   ├── renderer.py           # Playwright frame capture + ffmpeg
 │   ├── cartesia_tts.py       # Cartesia TTS client
-│   ├── openrouter_client.py  # OpenRouter LLM client
-│   ├── config.py             # Configuration + env vars
-│   ├── timeline_schema.py    # Timeline JSON validation
-│   └── qa.py                 # QA checks
+│   ├── renderer.py           # Playwright + ffmpeg
+│   └── debug_overlay.py      # Debug overlay injection
 │
 ├── audio_scripts/            # Input: voiceover scripts
-│   └── audio_script1.md
+│   └── my_script.md
 │
-├── templates/                # Starting points for new scenes
-│   ├── base.html             # Boilerplate HTML template
-│   └── script-template.md
+├── templates/                # Starting points
+│   └── base.html             # Boilerplate HTML template
 │
 ├── assets/                   # Reusable components
 │   ├── backgrounds/
@@ -180,38 +137,121 @@ Shorts/
 │   └── excel/
 │
 ├── docs/                     # Documentation
-│   ├── PRODUCTION_GUIDE.md
 │   ├── ANIMATION_LIBRARY.md
 │   └── COMPONENT_LIBRARY.md
 │
-├── runs/                     # Pipeline run outputs (gitignored)
+├── runs/                     # Run outputs (gitignored)
 │   └── <run_id>/
-│       ├── audio_script.md       # Input script (copied)
-│       ├── tts_words.json        # Stage D0: word timestamps (optional)
-│       ├── voiceover_segments.json # Stage D0: derived segments (optional)
-│       ├── video_script.md       # Stage B: voiceover timing tables
-│       ├── timeline.json         # Stage B: animation events
-│       ├── detailed_script.md    # Stage B2: natural language descriptions
-│       ├── refined_timeline.json # Stage B2: refined events
-│       ├── scene.html            # Stage C: runnable animation
-│       ├── scene_spec.json       # Stage C: element specs
-│       ├── frames/               # Stage E: captured PNGs
-│       ├── video.mp4             # Stage E: video only
-│       └── final.mp4             # Stage E: video + audio
+│       ├── audio_script.md   # Input (copied)
+│       ├── tts_words.json    # Word timestamps
+│       ├── scene.html        # YOUR animation (create manually)
+│       ├── frames/           # Captured PNGs
+│       └── final.mp4         # Video + audio
 │
 ├── renders/                  # Final outputs (gitignored)
 │   ├── <run_id>.mp4
 │   └── <run_id>.wav
 │
-├── tests/                    # Test suite
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
-│
 ├── .env                      # API keys (gitignored)
-├── pyproject.toml            # Python package config
+├── pyproject.toml
 └── README.md
 ```
+
+---
+
+## Word Timestamps Format
+
+The `tts_words.json` file contains word-level timing:
+
+```json
+[
+  {"word": "Let's", "start_ms": 0, "end_ms": 180},
+  {"word": "say", "start_ms": 180, "end_ms": 340},
+  {"word": "you're", "start_ms": 340, "end_ms": 520},
+  {"word": "working", "start_ms": 520, "end_ms": 780},
+  {"word": "at", "start_ms": 820, "end_ms": 920},
+  {"word": "a", "start_ms": 920, "end_ms": 980},
+  {"word": "bank.", "start_ms": 980, "end_ms": 1200}
+]
+```
+
+Use these timestamps to sync your animations in `scene.html`:
+
+```javascript
+// Show title when "working" is spoken (520ms)
+setTimeout(() => {
+  document.getElementById('title').classList.add('fadeUp');
+}, 520);
+
+// Show next element when "bank" is spoken (980ms)
+setTimeout(() => {
+  document.getElementById('subtitle').classList.add('popIn');
+}, 980);
+```
+
+---
+
+## Scene HTML Structure
+
+Your `scene.html` should follow this pattern:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=1080, height=1920">
+  <style>
+    .shorts-container {
+      width: 1080px;
+      height: 1920px;
+      position: relative;
+      background: #fff;
+    }
+    /* Your animations */
+    .fadeUp { animation: fadeUp 0.5s ease-out forwards; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="shorts-container">
+    <!-- Your content here -->
+    <h1 id="title" style="opacity:0;">Title</h1>
+  </div>
+  
+  <script>
+    window.__shortsPlayAll = function() {
+      // Trigger animations based on tts_words.json timestamps
+      setTimeout(() => {
+        document.getElementById('title').classList.add('fadeUp');
+      }, 520); // "working" starts at 520ms
+    };
+  </script>
+</body>
+</html>
+```
+
+**Key requirements:**
+- Container class: `.shorts-container` (1080×1920)
+- Play function: `window.__shortsPlayAll()` — called by renderer to start animation
+- Use `setTimeout` with timestamps from `tts_words.json`
+
+---
+
+## Animation Library
+
+Common CSS animations (copy into your scene.html):
+
+| Animation | Effect | Duration |
+|-----------|--------|----------|
+| `fadeUp` | Fade in + rise from below | 500ms |
+| `popIn` | Scale from 80% with bounce | 300ms |
+| `slideOutDown` | Slide down and exit | 600ms |
+| `swipe-out` | Swipe left and fade | 500ms |
+
+See `docs/ANIMATION_LIBRARY.md` for full list with CSS code.
 
 ---
 
@@ -219,225 +259,32 @@ Shorts/
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+Create `.env` in project root:
 
 ```bash
-# Required
-OPENROUTER_API_KEY=sk-or-v1-...
 CARTESIA_API_KEY=sk_car_...
-
-# Optional (defaults shown)
-CARTESIA_VOICE_ID=0ad65e7f-006c-47cf-bd31-52279d487913
 ```
 
-### Models Used
+### Voice ID
 
-| Purpose | Provider | Model ID |
-|---------|----------|----------|
-| Script writing / Storyboard | OpenRouter | `openai/gpt-5-chat` |
-| HTML scene building | OpenRouter | `anthropic/claude-sonnet-4.5` |
-| Text-to-speech | Cartesia | Sonic 3 |
+Default voice: `0ad65e7f-006c-47cf-bd31-52279d487913`
 
----
-
-## Manual Workflow (No API Keys)
-
-You can also create shorts manually without the automated pipeline:
-
-### 1. Write Audio Script
-
-Create `audio_scripts/my_script.md`:
-
-```markdown
-Let's say you're working at a bank...
-[pause]
-What do you do?
-```
-
-### 2. Create Video Script
-
-Create a rough video plan (timing + what appears) in any markdown file. The pipeline will generate `runs/<id>/video_script.md` and `runs/<id>/timeline.json` automatically when you run it with API keys.
-
-### 3. Build HTML Scene
-
-Copy `templates/base.html` to `runs/my_manual/scene.html` and add your content.
-
-### 4. Preview in Browser
-
-Open `runs/my_manual/scene.html` in Chrome:
-- **▶ Play All** — run full timeline
-- **1x / 3x** — toggle speed
-- Side buttons — jump to sections
-
-### 5. Record MP4
-
-**Mac (QuickTime):**
-1. QuickTime Player → File → New Screen Recording
-2. Select the 1080×1920 container
-3. Click Play All, record, stop
-4. Export 1080p
-
----
-
-## Modifying Pipeline Outputs
-
-### Edit scene.html and re-render
-
-1. Open `runs/<id>/scene.html` in your editor
-2. Modify animations, timing, or content
-3. Re-render:
-
-```bash
-shorts --id <id> --render-only
-```
-
-### Regenerate scene from edited timeline
-
-If you modify `runs/<id>/timeline.json` or `refined_timeline.json`:
-
-```python
-import json
-from pathlib import Path
-from agent.openrouter_client import OpenRouterClient
-from agent.config import get_openrouter_api_key
-from agent.stages import stage_scene_builder, load_base_html, load_animation_library, load_component_library
-
-shorts = Path('.')
-timeline = json.loads((shorts / 'runs/my_run/refined_timeline.json').read_text())
-client = OpenRouterClient(api_key=get_openrouter_api_key())
-
-result = stage_scene_builder(
-    client=client,
-    timeline=timeline,
-    base_html=load_base_html(shorts),
-    animation_library=load_animation_library(shorts),
-    component_library=load_component_library(shorts),
-)
-(shorts / 'runs/my_run/scene_v2.html').write_text(result.html)
-```
-
-### Preview without rendering
-
-Open `runs/<id>/scene.html` directly in Chrome to preview animations:
-- Click **▶ Play All** to run the full timeline
-- Use **1x / 3x** button to toggle speed
-- Side buttons jump to specific sections
-
----
-
-## Testing
-
-```bash
-# Activate environment
-source .venv/bin/activate
-
-# Unit tests only (fast, no API calls)
-pytest
-
-# Live API tests (costs money)
-pytest -m live
-
-# Render tests (requires ffmpeg + Playwright)
-pytest -m render
-
-# Full e2e test
-pytest -m e2e
-
-# All tests
-pytest -m "live or render or e2e"
-```
-
----
-
-## Visual Style
-
-All animations use a clean **infographic style**:
-
-- **Background**: White (#ffffff) with subtle grey plus-sign pattern
-- **Text**: CMU Serif for body, system-ui for badges
-- **Colors**: Dark grey text (#1f2937), blue accents (#1e40af), white cards
-- **Animations**: Simple, professional motion graphics
-
-This is NOT cinematic/movie-style — think educational explainer video.
-
----
-
-## Animation Library
-
-Available CSS animations (see `docs/ANIMATION_LIBRARY.md`):
-
-| Animation | Effect | Duration |
-|-----------|--------|----------|
-| `fadeUp` | Fade in + rise from below | 500ms |
-| `popIn` | Scale from 80% to 100% with bounce | 300ms |
-| `zoomOut` | Zoom out magnify effect | 400ms |
-| `slideOutDown` | Slide down and exit | 600ms |
-| `slideOutRight` | Slide right and exit | 600ms |
-| `panRight` | Ken Burns slow pan | 2500ms |
-| `swipe-out` | Swipe left and fade | 500ms |
-
----
-
-## Timeline JSON Format
-
-The pipeline generates `timeline.json` with this structure:
-
-```json
-{
-  "duration_ms": 20000,
-  "fps": 30,
-  "voiceover_segments": [
-    {"start_ms": 0, "end_ms": 1200, "text": "Let's say you're working"},
-    {"start_ms": 1200, "end_ms": 2800, "text": "at a bulge bracket investment bank"},
-    {"start_ms": 2800, "end_ms": 4000, "text": "on Wall Street."}
-  ],
-  "events": [
-    {"t_ms": 0, "op": "layerShow", "target": "intro", "trigger": "Let's"},
-    {"t_ms": 0, "op": "classAdd", "target": "title", "value": "fadeUp"},
-    {"t_ms": 2800, "op": "textSet", "target": "subtitle", "value": "WALL STREET", "trigger": "Wall Street"},
-    {"t_ms": 5000, "op": "layerHide", "target": "intro"}
-  ]
-}
-```
-
-### Event Fields
-
-| Field | Description |
-|-------|-------------|
-| `t_ms` | Timestamp in milliseconds |
-| `op` | Operation to perform |
-| `target` | Element ID |
-| `value` | CSS class or text content |
-| `trigger` | (optional) Spoken word that triggers this animation |
-
-### Operations
-
-| Op | Description |
-|----|-------------|
-| `classAdd` | Add CSS class to element |
-| `classRemove` | Remove CSS class from element |
-| `layerShow` | Show element (display: block) |
-| `layerHide` | Hide element (display: none) |
-| `textSet` | Set element's innerHTML |
-
-### Voiceover Segments
-
-The `voiceover_segments` array maps the audio script to precise timestamps, allowing animations to sync with specific phrases.
+To use a different voice, modify `CARTESIA_VOICE_ID` in `agent/cli.py`.
 
 ---
 
 ## Requirements
 
 - **Python 3.10+**
-- **ffmpeg** (for video encoding)
-- **Playwright Chromium** (for frame capture)
-- **OpenRouter API key** (for LLM stages)
-- **Cartesia API key** (for TTS)
+- **ffmpeg** — for video encoding
+- **Playwright Chromium** — for frame capture
+- **Cartesia API key** — for TTS
 
-### Install ffmpeg (Mac)
+### Install ffmpeg
 
 ```bash
-brew install ffmpeg
+brew install ffmpeg      # Mac
+sudo apt install ffmpeg  # Ubuntu
 ```
 
 ---
@@ -446,28 +293,24 @@ brew install ffmpeg
 
 ### "ModuleNotFoundError: No module named 'agent'"
 
-Reinstall the package:
 ```bash
 pip install -e '.[dev]'
 ```
 
-### "OPENROUTER_API_KEY not set"
+### "CARTESIA_API_KEY not set"
 
-Load your .env file:
 ```bash
 set -a && source .env && set +a
 ```
 
-### Empty or broken scene.html
+### Animation timing is off
 
-Check `runs/<id>/timeline.json` for valid JSON. The LLM sometimes returns malformed output — re-run the pipeline or manually fix the timeline.
+Check that your `setTimeout` delays match the timestamps in `tts_words.json`.
 
 ### ffmpeg not found
 
-Install ffmpeg:
 ```bash
-brew install ffmpeg  # Mac
-sudo apt install ffmpeg  # Ubuntu
+brew install ffmpeg
 ```
 
 ---

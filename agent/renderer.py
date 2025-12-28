@@ -82,10 +82,15 @@ def capture_frames_playwright(
     selector: str = ".shorts-container",
 ) -> int:
     """Capture frames from HTML animation using Playwright with deterministic timing.
-    
-    Uses Web Animations API to pause and seek all animations to exact timestamps,
-    ensuring frame-perfect capture regardless of browser speed.
-    
+
+    Key idea:
+    - Replace setTimeout/RAF/Date.now with a virtual clock
+    - After advancing virtual time, PAUSE + SEEK Web Animations API animations to the
+      exact visual state for that timestamp.
+
+    This avoids relying on real-time sleeps (which can make 60/120fps captures look
+    identical to 30fps when animations get clamped to their end states).
+
     Returns the number of frames captured.
     """
     from playwright.sync_api import sync_playwright
@@ -106,7 +111,8 @@ def capture_frames_playwright(
         page.goto(f"file://{html_path.resolve()}")
         page.wait_for_load_state("networkidle")
         
-        # Inject frame-stepping controller that works with CSS animations, setTimeout, AND requestAnimationFrame
+        # Inject frame-stepping controller that works with CSS animations, setTimeout, AND requestAnimationFrame.
+        # Also: pause + seek WAAPI animations deterministically per frame.
         page.evaluate("""
             // Virtual time state
             window.__virtualTime = 0;
@@ -115,6 +121,7 @@ def capture_frames_playwright(
             window.__timerIdCounter = 1;
             window.__rafCallbacks = new Map();
             window.__rafIdCounter = 1;
+            window.__animStarts = new WeakMap(); // Animation -> start time (virtual ms)
             
             // Override setTimeout to use virtual time
             const __originalSetTimeout = window.setTimeout;
@@ -180,17 +187,25 @@ def capture_frames_playwright(
                     try { cb(window.__virtualTime); } catch(e) { console.error(e); }
                 });
                 
-                // Seek all CSS animations using Web Animations API
-                document.getAnimations().forEach(anim => {
+                // Pause + seek all animations (CSS animations + CSS transitions) deterministically.
+                // NOTE: Animation.currentTime is RELATIVE to when the animation started.
+                // We track a per-animation "start time" in virtual ms so we can seek correctly.
+                const anims = document.getAnimations({ subtree: true });
+                for (const anim of anims) {
                     try {
-                        // Only seek if animation is in a seekable state
-                        if (anim.playState !== 'idle') {
-                            anim.currentTime = targetMs;
+                        // Record an approximate "start time" the first moment we observe this anim.
+                        // This becomes the reference for seeking currentTime.
+                        if (!window.__animStarts.has(anim)) {
+                            window.__animStarts.set(anim, window.__virtualTime);
                         }
-                    } catch(e) {
-                        // Some animations can't be seeked (e.g., not yet started) - skip them
+                        const startMs = window.__animStarts.get(anim) || 0;
+                        const localT = Math.max(0, targetMs - startMs);
+                        anim.pause();
+                        anim.currentTime = localT;
+                    } catch (e) {
+                        // Some animations may be non-seekable; ignore.
                     }
-                });
+                }
                 
                 window.__lastSeekTime = targetMs;
             };
@@ -227,22 +242,13 @@ def capture_frames_playwright(
                 selector,
             )
 
-        # Capture frames by stepping through time
-        # We advance virtual time (for setTimeout/RAF) and let CSS animations run in real-time
-        last_virtual_time = 0
+        # Capture frames by stepping through virtual time and deterministically seeking animations.
         for i in range(total_frames):
             frame_path = frames_dir / f"frame_{i:06d}.png"
             target_time_ms = i * frame_interval_ms
             
             # Advance virtual time to fire setTimeout callbacks (which add animation classes)
             page.evaluate(f"window.__seekToTime({target_time_ms})")
-            
-            # Let CSS animations catch up by sleeping the delta in real-time
-            # This ensures CSS transitions/animations progress correctly
-            delta_ms = target_time_ms - last_virtual_time
-            if delta_ms > 0:
-                time.sleep(delta_ms / 1000)
-            last_virtual_time = target_time_ms
             
             if use_locator:
                 locator.first.screenshot(path=str(frame_path))

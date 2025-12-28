@@ -1,7 +1,7 @@
 Metadata-Version: 2.4
 Name: shorts-agent
 Version: 0.1.0
-Summary: Local agent pipeline for generating HTML-based YouTube Shorts (OpenRouter + Cartesia + Playwright + ffmpeg).
+Summary: TTS + Render utilities for HTML-based YouTube Shorts (Cartesia + Playwright + ffmpeg).
 Requires-Python: >=3.10
 Requires-Dist: httpx>=0.27.0
 Requires-Dist: jsonschema>=4.22.0

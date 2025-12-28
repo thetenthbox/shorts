@@ -1,4 +1,4 @@
-"""CLI orchestrator for Shorts pipeline."""
+"""Simplified CLI for Shorts: TTS + Render utilities."""
 from __future__ import annotations
 
 import argparse
@@ -9,46 +9,15 @@ from pathlib import Path
 from typing import Optional
 
 from .cartesia_tts import CartesiaTTS
-from .config import (
-    CARTESIA_VOICE_ID,
-    get_cartesia_api_key,
-    get_openrouter_api_key,
-)
 from .debug_overlay import inject_debug_overlay
-from .openrouter_client import OpenRouterClient
 from .renderer import render_mp4
-from .stages import (
-    StoryboardResult,
-    DetailResult,
-    SceneBuildResult,
-    load_animation_library,
-    load_audio_script,
-    load_base_html,
-    load_component_library,
-    stage_detail_pass,
-    stage_scene_builder,
-    stage_storyboard,
-)
+
+# Configuration
+CARTESIA_VOICE_ID = "0ad65e7f-006c-47cf-bd31-52279d487913"
 
 
-def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
-        prog="shorts",
-        description="Generate animated shorts from audio scripts",
-    )
-    p.add_argument("--id", required=True, help="Unique ID for this run")
-    p.add_argument("--audio", help="Path to audio script markdown file")
-    p.add_argument("--topic", help="Topic to generate audio script from (not implemented yet)")
-    p.add_argument("--skip-tts", action="store_true", help="Skip TTS generation")
-    p.add_argument("--no-tts-first", action="store_true", help="Disable TTS-first timestamp-driven timing (use estimated timings)")
-    p.add_argument("--skip-render", action="store_true", help="Skip frame capture and MP4 render")
-    p.add_argument("--render-only", action="store_true", help="Only render MP4 from existing scene.html")
-    p.add_argument("--rebuild-html", action="store_true", help="Rebuild scene.html from existing detailed_script + timeline")
-    # Debug overlay is ON by default (shows timer + current script line).
-    p.add_argument("--debug", dest="debug", action="store_true", default=True, help="Enable debug overlay (default: on)")
-    p.add_argument("--no-debug", dest="debug", action="store_false", help="Disable debug overlay")
-    p.add_argument("--duration", type=int, default=60, help="Target duration in seconds")
-    return p
+def get_cartesia_api_key() -> Optional[str]:
+    return os.getenv("CARTESIA_API_KEY")
 
 
 def get_shorts_dir() -> Path:
@@ -56,416 +25,207 @@ def get_shorts_dir() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def run_pipeline(
-    *,
-    run_id: str,
-    audio_script_path: Optional[Path],
-    topic: Optional[str],
-    skip_tts: bool,
-    no_tts_first: bool,
-    skip_render: bool,
-    debug: bool,
-    duration_s: int,
-) -> int:
-    """Run the full pipeline."""
+def cmd_tts(args) -> int:
+    """Generate TTS audio + word-level timestamps."""
     
     shorts_dir = get_shorts_dir()
-    runs_dir = shorts_dir / "runs" / run_id
+    runs_dir = shorts_dir / "runs" / args.id
     renders_dir = shorts_dir / "renders"
     runs_dir.mkdir(parents=True, exist_ok=True)
     renders_dir.mkdir(parents=True, exist_ok=True)
     
-    # Load API keys
-    openrouter_key = get_openrouter_api_key()
-    if not openrouter_key:
-        print("ERROR: OPENROUTER_API_KEY not set", file=sys.stderr)
+    # Load audio script
+    audio_path = Path(args.audio)
+    if not audio_path.exists():
+        print(f"ERROR: Audio script not found: {audio_path}", file=sys.stderr)
         return 1
     
-    cartesia_key = get_cartesia_api_key()
-    if not cartesia_key and not skip_tts:
-        print("ERROR: CARTESIA_API_KEY not set (use --skip-tts to skip)", file=sys.stderr)
-        return 1
-    
-    # Initialize clients
-    openrouter = OpenRouterClient(api_key=openrouter_key)
-    
-    # Stage A: Load or generate audio script
-    if audio_script_path:
-        print(f"Loading audio script from {audio_script_path}")
-        audio_script = load_audio_script(audio_script_path)
-    elif topic:
-        print("ERROR: Topic-to-script generation not implemented yet. Use --audio instead.")
-        return 1
-    else:
-        print("ERROR: Must provide --audio or --topic", file=sys.stderr)
-        return 1
+    audio_script = audio_path.read_text(encoding="utf-8")
     
     # Save audio script to run dir
     (runs_dir / "audio_script.md").write_text(audio_script, encoding="utf-8")
-
-    # Stage D0: TTS with timestamps FIRST (authoritative timing for storyboard)
-    tts_word_timestamps = None
-    wav_path: Optional[Path] = None
-    voiceover_segments: Optional[list] = None
-    if not skip_tts and cartesia_key and not no_tts_first:
-        print("Stage D0: Generating voiceover + timestamps (authoritative timing)...")
-        try:
-            tts = CartesiaTTS(api_key=cartesia_key)
-            wav_path = renders_dir / f"{run_id}.wav"
-            tts_word_timestamps = tts.synthesize_with_timestamps(
-                text=audio_script,
-                voice_id=CARTESIA_VOICE_ID,
-                out_wav_path=wav_path,
-            )
-            print(f"  -> Saved voiceover to {wav_path}")
-            # Persist word timestamps for debugging
-            (runs_dir / "tts_words.json").write_text(
-                json.dumps([w.__dict__ for w in tts_word_timestamps], indent=2),
-                encoding="utf-8",
-            )
-            # Build voiceover_segments by grouping words into sentence-like chunks
-            voiceover_segments = []
-            buf_words = []
-            seg_start = None
-            def flush_seg(end_ms: int):
-                nonlocal buf_words, seg_start
-                if not buf_words or seg_start is None:
-                    buf_words = []
-                    seg_start = None
-                    return
-                text = " ".join(buf_words).strip()
-                if text:
-                    voiceover_segments.append({"start_ms": int(seg_start), "end_ms": int(end_ms), "text": text})
-                buf_words = []
-                seg_start = None
-
-            for wt in tts_word_timestamps:
-                if seg_start is None:
-                    seg_start = wt.start_ms
-                token = wt.word
-                buf_words.append(token)
-                if token.endswith((".", "?", "!", "…")):
-                    flush_seg(wt.end_ms)
-                # Also break on explicit pauses represented in script as blank lines by limiting segment length
-                if len(buf_words) >= 18:
-                    flush_seg(wt.end_ms)
-            if tts_word_timestamps:
-                flush_seg(tts_word_timestamps[-1].end_ms)
-
-            if voiceover_segments:
-                (runs_dir / "voiceover_segments.json").write_text(
-                    json.dumps(voiceover_segments, indent=2), encoding="utf-8"
-                )
-        except Exception as e:
-            print(f"WARNING: TTS timestamps failed: {e} (falling back to estimated timings)", file=sys.stderr)
-            wav_path = None
-            tts_word_timestamps = None
-            voiceover_segments = None
     
-    # Stage B: Storyboard (audio script -> timeline)
-    print("Stage B: Generating video script and timeline...")
-    try:
-        storyboard: StoryboardResult = stage_storyboard(
-            client=openrouter,
-            audio_script=audio_script,
-            voiceover_segments=voiceover_segments,
-            duration_hint_s=duration_s,
-        )
-    except Exception as e:
-        print(f"ERROR in storyboard stage: {e}", file=sys.stderr)
+    # Get API key
+    cartesia_key = get_cartesia_api_key()
+    if not cartesia_key:
+        print("ERROR: CARTESIA_API_KEY not set", file=sys.stderr)
         return 1
     
-    # Save storyboard outputs
-    (runs_dir / "video_script.md").write_text(storyboard.video_script_md, encoding="utf-8")
-    (runs_dir / "timeline.json").write_text(
-        json.dumps(storyboard.timeline, indent=2), encoding="utf-8"
-    )
-    print(f"  -> Saved video_script.md and timeline.json to {runs_dir}")
-    
-    # Stage B2: Detail pass (polish with visual specs)
-    print("Stage B2: Adding detailed visual descriptions...")
+    # Generate TTS
+    print(f"Generating TTS for {args.id}...")
     try:
-        detail_result: DetailResult = stage_detail_pass(
-            client=openrouter,
-            video_script=storyboard.video_script_md,
-            timeline=storyboard.timeline,
-        )
-        # Use refined timeline for scene building
-        final_timeline = detail_result.refined_timeline
-    except Exception as e:
-        print(f"WARNING: Detail pass failed ({e}), using original timeline", file=sys.stderr)
-        detail_result = None
-        final_timeline = storyboard.timeline
-    
-    # Save detail pass outputs
-    if detail_result:
-        (runs_dir / "detailed_script.md").write_text(detail_result.detailed_script_md, encoding="utf-8")
-        (runs_dir / "refined_timeline.json").write_text(
-            json.dumps(detail_result.refined_timeline, indent=2), encoding="utf-8"
-        )
-        print(f"  -> Saved detailed_script.md and refined_timeline.json to {runs_dir}")
-    
-    # Stage C: Scene builder (timeline -> HTML)
-    print("Stage C: Building HTML scene...")
-    try:
-        base_html = load_base_html(shorts_dir)
-        animation_lib = load_animation_library(shorts_dir)
-        component_lib = load_component_library(shorts_dir)
+        tts = CartesiaTTS(api_key=cartesia_key)
+        wav_path = renders_dir / f"{args.id}.wav"
         
-        scene_result: SceneBuildResult = stage_scene_builder(
-            client=openrouter,
-            timeline=final_timeline,
-            base_html=base_html,
-            animation_library=animation_lib,
-            component_library=component_lib,
-            detailed_script=detail_result.detailed_script_md if detail_result else "",
+        word_timestamps = tts.synthesize_with_timestamps(
+            text=audio_script,
+            voice_id=CARTESIA_VOICE_ID,
+            out_wav_path=wav_path,
         )
+        
+        print(f"  -> Saved WAV to {wav_path}")
+        
+        # Save word-level timestamps
+        tts_words_path = runs_dir / "tts_words.json"
+        tts_words_path.write_text(
+            json.dumps([w.__dict__ for w in word_timestamps], indent=2),
+            encoding="utf-8",
+        )
+        print(f"  -> Saved timestamps to {tts_words_path}")
+        print(f"  -> {len(word_timestamps)} words, duration: {word_timestamps[-1].end_ms}ms")
+        
     except Exception as e:
-        print(f"ERROR in scene builder stage: {e}", file=sys.stderr)
+        print(f"ERROR: TTS failed: {e}", file=sys.stderr)
         return 1
     
-    # Save scene outputs (with optional debug overlay)
-    scene_html = scene_result.html
-    if debug:
-        # Always read voiceover_segments from the original timeline.json written in Stage B.
-        # (refined_timeline.json can be a list of descriptions depending on the LLM output.)
-        timeline_path = runs_dir / "timeline.json"
-        if timeline_path.exists():
-            orig_timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
-            voiceover_segments = orig_timeline.get("voiceover_segments", [])
-        else:
-            voiceover_segments = final_timeline.get("voiceover_segments", []) if isinstance(final_timeline, dict) else []
-        scene_html = inject_debug_overlay(scene_html, voiceover_segments)
-        print("  -> Injected debug overlay")
-    
-    scene_path = runs_dir / "scene.html"
-    scene_path.write_text(scene_html, encoding="utf-8")
-    (runs_dir / "scene_spec.json").write_text(
-        json.dumps(scene_result.scene_spec, indent=2), encoding="utf-8"
-    )
-    print(f"  -> Saved scene.html and scene_spec.json to {runs_dir}")
-    
-    # Stage D: TTS (already done in Stage D0 if not skipped)
-    
-    # Stage E: Render (HTML + WAV -> MP4)
-    if not skip_render:
-        print("Stage E: Rendering MP4...")
-        try:
-            duration_ms = final_timeline.get("duration_ms", duration_s * 1000)
-            result = render_mp4(
-                html_path=scene_path,
-                output_dir=runs_dir,
-                duration_ms=duration_ms,
-                fps=30,
-                wav_path=wav_path,
-            )
-            
-            # Copy final MP4 to renders/
-            final_mp4 = result.final_mp4_path or result.mp4_path
-            output_mp4 = renders_dir / f"{run_id}.mp4"
-            output_mp4.write_bytes(final_mp4.read_bytes())
-            print(f"  -> Saved MP4 to {output_mp4}")
-            print(f"  -> Captured {result.frame_count} frames")
-        except Exception as e:
-            print(f"ERROR in render stage: {e}", file=sys.stderr)
-            return 1
-    
-    print(f"\n✓ Pipeline complete! Outputs in {runs_dir}")
+    print(f"\n✓ TTS complete! Outputs in {runs_dir}")
     return 0
 
 
-def run_render_only(*, run_id: str, duration_s: int, skip_tts: bool) -> int:
-    """Render MP4 from existing scene.html in a run directory."""
+def cmd_render(args) -> int:
+    """Render MP4 from scene.html + WAV."""
     
     shorts_dir = get_shorts_dir()
-    runs_dir = shorts_dir / "runs" / run_id
+    runs_dir = shorts_dir / "runs" / args.id
     renders_dir = shorts_dir / "renders"
     
+    # Check for scene.html
     scene_path = runs_dir / "scene.html"
     if not scene_path.exists():
         print(f"ERROR: {scene_path} not found", file=sys.stderr)
+        print("Create scene.html manually in the run directory first.", file=sys.stderr)
         return 1
     
-    # Load timeline for duration (prefer timeline.json because refined_timeline.json may be a list)
-    timeline_path = runs_dir / "timeline.json"
-    if not timeline_path.exists():
-        timeline_path = runs_dir / "refined_timeline.json"
-    
-    if timeline_path.exists():
-        timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
-        if isinstance(timeline, dict):
-            duration_ms = timeline.get("duration_ms", duration_s * 1000)
-        else:
-            duration_ms = duration_s * 1000
-    else:
-        duration_ms = duration_s * 1000
-    
-    # Check for existing WAV
-    wav_path = renders_dir / f"{run_id}.wav"
+    # Check for WAV
+    wav_path = renders_dir / f"{args.id}.wav"
     if not wav_path.exists():
         wav_path = None
+        print("WARNING: No WAV file found, rendering without audio")
     
-    # TTS if needed
-    if not skip_tts and not wav_path:
-        cartesia_key = get_cartesia_api_key()
-        audio_script_path = runs_dir / "audio_script.md"
-        if cartesia_key and audio_script_path.exists():
-            print("Generating voiceover...")
-            tts = CartesiaTTS(api_key=cartesia_key)
-            wav_path = renders_dir / f"{run_id}.wav"
-            tts.synthesize_wav(
-                text=audio_script_path.read_text(encoding="utf-8"),
-                voice_id=CARTESIA_VOICE_ID,
-                out_wav_path=wav_path,
-            )
-            print(f"  -> Saved voiceover to {wav_path}")
+    # Read scene.html for debug overlay injection
+    scene_html = scene_path.read_text(encoding="utf-8")
+    
+    # Inject debug overlay if requested
+    if args.debug:
+        tts_words_path = runs_dir / "tts_words.json"
+        if tts_words_path.exists():
+            tts_words = json.loads(tts_words_path.read_text(encoding="utf-8"))
+            # Convert word timestamps to segments for display
+            voiceover_segments = []
+            for w in tts_words:
+                voiceover_segments.append({
+                    "start_ms": w["start_ms"],
+                    "end_ms": w["end_ms"],
+                    "text": w["word"],
+                })
+            scene_html = inject_debug_overlay(scene_html, voiceover_segments)
+            print("  -> Injected debug overlay")
+        else:
+            print("WARNING: No tts_words.json found, skipping debug overlay")
+    
+    # Write modified scene.html for rendering
+    render_scene_path = runs_dir / "scene_render.html"
+    render_scene_path.write_text(scene_html, encoding="utf-8")
+    
+    # Determine duration
+    duration_ms = args.duration * 1000
+    if wav_path:
+        # Get actual duration from WAV
+        import wave
+        with wave.open(str(wav_path), 'rb') as w:
+            frames = w.getnframes()
+            rate = w.getframerate()
+            wav_duration_ms = int((frames / rate) * 1000)
+            duration_ms = max(duration_ms, wav_duration_ms)
     
     print(f"Rendering MP4 from {scene_path}...")
-    print(f"  Duration: {duration_ms}ms, WAV: {wav_path or 'none'}")
+    print(f"  Duration: {duration_ms}ms, FPS: {args.fps}")
     
     try:
         result = render_mp4(
-            html_path=scene_path,
+            html_path=render_scene_path,
             output_dir=runs_dir,
             duration_ms=duration_ms,
-            fps=30,
+            fps=args.fps,
             wav_path=wav_path,
         )
         
+        # Copy final MP4 to renders/
         final_mp4 = result.final_mp4_path or result.mp4_path
-        output_mp4 = renders_dir / f"{run_id}.mp4"
+        output_mp4 = renders_dir / f"{args.id}.mp4"
         output_mp4.write_bytes(final_mp4.read_bytes())
         print(f"  -> Saved MP4 to {output_mp4}")
         print(f"  -> Captured {result.frame_count} frames")
+        
     except Exception as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+        print(f"ERROR: Render failed: {e}", file=sys.stderr)
         return 1
     
     print(f"\n✓ Render complete!")
     return 0
 
 
-def run_rebuild_html(*, run_id: str, skip_render: bool, skip_tts: bool, debug: bool, duration_s: int) -> int:
-    """Rebuild scene.html from existing detailed_script + timeline."""
+def cmd_run(args) -> int:
+    """Full pipeline: TTS + Render (scene.html must exist)."""
     
     shorts_dir = get_shorts_dir()
-    runs_dir = shorts_dir / "runs" / run_id
-    renders_dir = shorts_dir / "renders"
+    runs_dir = shorts_dir / "runs" / args.id
     
-    # Load existing files
-    detailed_script_path = runs_dir / "detailed_script.md"
-    refined_timeline_path = runs_dir / "refined_timeline.json"
-    timeline_path = runs_dir / "timeline.json"
+    # First, run TTS
+    tts_result = cmd_tts(args)
+    if tts_result != 0:
+        return tts_result
     
-    if not detailed_script_path.exists() and not timeline_path.exists():
-        print(f"ERROR: No detailed_script.md or timeline.json in {runs_dir}", file=sys.stderr)
-        return 1
-    
-    # Load timeline (prefer refined)
-    if refined_timeline_path.exists():
-        timeline = json.loads(refined_timeline_path.read_text(encoding="utf-8"))
-        print(f"Loaded refined_timeline.json")
-    elif timeline_path.exists():
-        timeline = json.loads(timeline_path.read_text(encoding="utf-8"))
-        print(f"Loaded timeline.json")
-    else:
-        timeline = {}
-    
-    # Load detailed script
-    detailed_script = ""
-    if detailed_script_path.exists():
-        detailed_script = detailed_script_path.read_text(encoding="utf-8")
-        print(f"Loaded detailed_script.md")
-    
-    # Get API key
-    openrouter_key = get_openrouter_api_key()
-    if not openrouter_key:
-        print("ERROR: OPENROUTER_API_KEY not set", file=sys.stderr)
-        return 1
-    
-    openrouter = OpenRouterClient(api_key=openrouter_key)
-    
-    # Load templates
-    base_html = load_base_html(shorts_dir)
-    animation_lib = load_animation_library(shorts_dir)
-    component_lib = load_component_library(shorts_dir)
-    
-    print("Rebuilding scene.html...")
-    try:
-        scene_result: SceneBuildResult = stage_scene_builder(
-            client=openrouter,
-            timeline=timeline,
-            base_html=base_html,
-            animation_library=animation_lib,
-            component_library=component_lib,
-            detailed_script=detailed_script,
-        )
-    except Exception as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        return 1
-    
-    # Save outputs (with optional debug overlay)
-    scene_html = scene_result.html
-    if debug:
-        # Load voiceover_segments from timeline.json (not refined_timeline which may be a list)
-        orig_timeline_path = runs_dir / "timeline.json"
-        if orig_timeline_path.exists():
-            orig_timeline = json.loads(orig_timeline_path.read_text(encoding="utf-8"))
-            voiceover_segments = orig_timeline.get("voiceover_segments", [])
-        else:
-            voiceover_segments = timeline.get("voiceover_segments", []) if isinstance(timeline, dict) else []
-        scene_html = inject_debug_overlay(scene_html, voiceover_segments)
-        print("  -> Injected debug overlay")
-    
+    # Check if scene.html exists
     scene_path = runs_dir / "scene.html"
-    scene_path.write_text(scene_html, encoding="utf-8")
-    (runs_dir / "scene_spec.json").write_text(
-        json.dumps(scene_result.scene_spec, indent=2), encoding="utf-8"
+    if not scene_path.exists():
+        print(f"\nWARNING: {scene_path} not found")
+        print("Create scene.html manually, then run: shorts render --id " + args.id)
+        return 0
+    
+    # Run render
+    return cmd_render(args)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="shorts",
+        description="Shorts: TTS + Render utilities for animated videos",
     )
-    print(f"  -> Saved scene.html to {runs_dir}")
+    subparsers = parser.add_subparsers(dest="command", required=True)
     
-    # Optionally render
-    if not skip_render:
-        return run_render_only(run_id=run_id, duration_s=duration_s, skip_tts=skip_tts)
+    # TTS subcommand
+    tts_parser = subparsers.add_parser("tts", help="Generate TTS audio + word timestamps")
+    tts_parser.add_argument("--id", required=True, help="Unique ID for this run")
+    tts_parser.add_argument("--audio", required=True, help="Path to audio script markdown file")
+    tts_parser.set_defaults(func=cmd_tts)
     
-    print(f"\n✓ Rebuild complete!")
-    return 0
+    # Render subcommand
+    render_parser = subparsers.add_parser("render", help="Render MP4 from scene.html + WAV")
+    render_parser.add_argument("--id", required=True, help="Run ID to render")
+    render_parser.add_argument("--duration", type=int, default=60, help="Min duration in seconds (default: 60)")
+    render_parser.add_argument("--fps", type=int, default=30, help="Render FPS (default: 30)")
+    render_parser.add_argument("--debug", action="store_true", default=True, help="Add debug overlay (default: on)")
+    render_parser.add_argument("--no-debug", dest="debug", action="store_false", help="Disable debug overlay")
+    render_parser.set_defaults(func=cmd_render)
+    
+    # Run subcommand (TTS + Render)
+    run_parser = subparsers.add_parser("run", help="Run TTS then render (scene.html must exist)")
+    run_parser.add_argument("--id", required=True, help="Unique ID for this run")
+    run_parser.add_argument("--audio", required=True, help="Path to audio script markdown file")
+    run_parser.add_argument("--duration", type=int, default=60, help="Min duration in seconds (default: 60)")
+    run_parser.add_argument("--fps", type=int, default=30, help="Render FPS (default: 30)")
+    run_parser.add_argument("--debug", action="store_true", default=True, help="Add debug overlay (default: on)")
+    run_parser.add_argument("--no-debug", dest="debug", action="store_false", help="Disable debug overlay")
+    run_parser.set_defaults(func=cmd_run)
+    
+    return parser
 
 
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    
-    # Render-only mode
-    if args.render_only:
-        return run_render_only(
-            run_id=args.id,
-            duration_s=args.duration,
-            skip_tts=args.skip_tts,
-        )
-    
-    # Rebuild HTML mode
-    if args.rebuild_html:
-        return run_rebuild_html(
-            run_id=args.id,
-            skip_render=args.skip_render,
-            skip_tts=args.skip_tts,
-            debug=args.debug,
-            duration_s=args.duration,
-        )
-    
-    audio_path = Path(args.audio) if args.audio else None
-    
-    return run_pipeline(
-        run_id=args.id,
-        audio_script_path=audio_path,
-        topic=args.topic,
-        skip_tts=args.skip_tts,
-        no_tts_first=args.no_tts_first,
-        skip_render=args.skip_render,
-        debug=args.debug,
-        duration_s=args.duration,
-    )
+    return args.func(args)
 
 
 if __name__ == "__main__":
