@@ -1,43 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assets Showcase: excel</title>
+  <title>Excel Asset Showcase</title>
   <style>
-    @import url('https://fonts.cdnfonts.com/css/cmu-serif');
-
-    /* === RESET === */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    /* === BRAND COLORS - ENERGETIC === */
-    :root {
-      --gold: #fbbf24;
-      --red: #ef4444;
-      --green: #22c55e;
-      --blue-accent: #3b82f6;
-      --purple: #a855f7;
-      --text-dark: #1f2937;
-      --text-light: #6b7280;
-      --bg-white: #ffffff;
-      --bg-cream: #fefce8;
-    }
-
-    /* === BODY === */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      background: #1e3a5f;
       min-height: 100vh;
-      background: #0a0a0a;
-      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, sans-serif;
     }
-
-    /* === SHORTS CONTAINER === */
     .shorts-container {
       width: 1080px;
       height: 1920px;
@@ -45,1135 +20,401 @@
       overflow: hidden;
       transform: scale(0.4);
       transform-origin: center center;
-      background: var(--bg-white);
+    }
+    .white-backdrop {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #f5f5f5;
     }
 
-    /* === PLUS PATTERN BACKGROUND === */
-    .plus-pattern {
+    .section-label {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-image: 
-        linear-gradient(#e5e7eb 1px, transparent 1px),
-        linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
-      background-size: 60px 60px;
-      opacity: 0.4;
-      z-index: 1;
-    }
-
-    /* === BANK LOGOS - LARGER === */
-    .bank-logos {
-      position: absolute;
-      top: 50%;
+      top: 60px;
       left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 60px;
-      z-index: 10;
-      display: none;
-    }
-
-    .bank-logo {
-      height: 180px;
-      width: auto;
-      object-fit: contain;
-      opacity: 0;
-      filter: drop-shadow(0 8px 30px rgba(0,0,0,0.2));
-    }
-
-    /* === WALL STREET TEXT === */
-    .wall-street-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-family: 'CMU Serif', Georgia, serif;
-      font-size: 100px;
-      font-weight: 700;
-      color: var(--text-dark);
-      text-transform: uppercase;
-      letter-spacing: 10px;
-      z-index: 10;
-      display: none;
-      opacity: 0;
-      text-shadow: 0 4px 30px rgba(0,0,0,0.1);
-    }
-
-    /* === EXCEL TABLES CONTAINER === */
-    .excel-stack {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 40px;
-      padding: 100px 60px;
-      z-index: 10;
-      display: none;
-    }
-
-    .excel-table {
-      width: 100%;
-      max-width: 950px;
-      background: #fff;
-      border: 3px solid #374151;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-      opacity: 0;
-      position: relative;
-    }
-
-    .excel-table table {
-      border-radius: 9px;
-      overflow: hidden;
-    }
-
-    .excel-table table {
-      width: 100%;
-      border-collapse: collapse;
-      font-family: 'Consolas', 'Courier New', monospace;
-      font-size: 22px;
-    }
-
-    .excel-table td {
-      padding: 14px 18px;
-      border: 1px solid #e5e7eb;
-      color: var(--text-dark);
-      text-align: right;
-    }
-
-    .excel-table .header-row td {
-      background: #1e3a5f;
-      color: #fff;
-      font-weight: 700;
-      text-align: center;
-    }
-
-    .excel-table .label-col {
-      text-align: left;
-      background: #f9fafb;
-      font-weight: 600;
-      min-width: 160px;
-    }
-
-    .excel-table .highlight {
-      background: #fef2f2;
-      color: var(--red);
-      font-weight: 700;
-    }
-
-    /* Cross-out overlay - BIG RED X using real divs */
-    .cross-out {
-      position: absolute;
-      top: 0;
-      left: -10%;
-      width: 120%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 100;
-      display: block !important;
-    }
-
-    .cross-line {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      background: #ef4444;
-      height: 14px;
-      width: 0;
-      border-radius: 7px;
-      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.9), 0 0 40px rgba(239, 68, 68, 0.5);
-      display: block !important;
-    }
-
-    .cross-line-1 {
-      transform: translateY(-50%) rotate(8deg);
-    }
-
-    .cross-line-2 {
-      transform: translateY(-50%) rotate(-8deg);
-    }
-
-    /* Red tint on crossed table */
-    .excel-table.crossed {
-      background: #fee2e2 !important;
-      border-color: #ef4444 !important;
-      box-shadow: 0 0 30px rgba(239, 68, 68, 0.5) !important;
-    }
-    
-    .excel-table.crossed table {
-      opacity: 0.6;
-    }
-
-    /* === WHAT DO YOU DO TEXT === */
-    .what-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-family: 'CMU Serif', Georgia, serif;
-      font-size: 90px;
-      font-weight: 700;
-      color: var(--text-dark);
-      text-align: center;
-      z-index: 15;
-      display: none;
-      opacity: 0;
-    }
-
-    /* After it pops, it becomes the header (top) while options come in */
-    .what-text.moved-up {
-      top: 26%;
-      transform: translate(-50%, 0) scale(0.68);
-      opacity: 1;
-      transition: top 700ms cubic-bezier(0.22, 1, 0.36, 1), transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .what-emoji {
-      font-size: 120px;
-      display: block;
-      margin-top: 40px;
-    }
-
-    /* === MCQ CONTAINER === */
-    .mcq-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px;
-      z-index: 10;
-      display: none;
-    }
-
-    .mcq-question {
-      font-family: 'CMU Serif', Georgia, serif;
-      font-size: 72px;
-      color: var(--text-dark);
-      text-align: center;
-      margin-bottom: 80px;
-      opacity: 0;
-    }
-
-    .mcq-options {
-      display: flex;
-      flex-direction: column;
-      gap: 30px;
-      width: 100%;
-      max-width: 900px;
-    }
-
-    .mcq-option {
-      background: #fff;
-      border: 3px solid #e5e7eb;
-      border-radius: 16px;
-      padding: 32px 40px;
-      font-size: 38px;
-      color: var(--text-dark);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      opacity: 0;
-      transform: translateX(-30px);
-    }
-
-    .mcq-label {
-      font-weight: 800;
-      color: var(--blue-accent);
-      min-width: 60px;
-    }
-
-    .mcq-option .fire {
-      margin-left: auto;
-      font-size: 36px;
-    }
-
-    /* === REALITY CARD === */
-    .reality-card {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-      border: 4px solid var(--gold);
-      border-radius: 24px;
-      padding: 60px 80px;
-      text-align: center;
-      box-shadow: 0 20px 60px rgba(251, 191, 36, 0.3);
-      z-index: 10;
-      display: none;
-      opacity: 0;
-    }
-
-    .reality-title {
-      font-family: 'CMU Serif', Georgia, serif;
+      transform: translateX(-50%);
+      font-family: Georgia, serif;
       font-size: 48px;
       font-weight: 700;
-      color: #92400e;
-      margin-bottom: 40px;
-    }
-
-    .reality-vs {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 40px;
-    }
-
-    .reality-badge {
-      padding: 24px 40px;
-      border-radius: 12px;
-      font-size: 36px;
-      font-weight: 700;
-    }
-
-    .badge-intern {
-      background: #fecaca;
-      color: var(--red);
-      font-size: 28px;
-    }
-
-    .badge-ft {
-      background: #bbf7d0;
-      color: #166534;
-      font-size: 44px;
-    }
-
-    .vs-text {
-      font-size: 32px;
-      font-weight: 700;
-      color: #92400e;
-    }
-
-    /* === ORG CHART === */
-    .org-chart {
-      position: absolute;
-      top: 56%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      z-index: 10;
-      display: none;
-      opacity: 0;
-    }
-
-    /* Animate this, not the positioned container (keeps centering stable) */
-    .org-chart-inner {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      opacity: 0;
-      will-change: transform, opacity;
-    }
-
-    .org-card {
-      background: #fff;
-      border: 3px solid #e5e7eb;
-      border-radius: 16px;
-      padding: 20px 50px;
+      color: #1e40af;
       text-align: center;
-      min-width: 320px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      opacity: 0;
+      z-index: 100;
     }
+    .section-label.show { animation: fadeUp 0.4s ease-out forwards; }
 
-    .org-card.md { border-color: #1e40af; background: #eff6ff; }
-    .org-card.director { border-color: #7c3aed; background: #f5f3ff; }
-    .org-card.vp { border-color: #16a34a; background: #f0fdf4; }
-    .org-card.associate { border-color: #ea580c; background: #fff7ed; }
-    .org-card.analyst { border-color: #6b7280; background: #f9fafb; }
-    .org-card.intern-card { 
-      border-color: var(--red); 
-      background: #fef2f2;
-      border-width: 5px;
-      animation: internPulse 1.5s ease-in-out infinite;
-      transform: scale(1.15);
-      min-width: 360px;
-    }
-
-    @keyframes internPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
-      50% { box-shadow: 0 0 30px 15px rgba(239, 68, 68, 0.3); }
-    }
-
-    .org-title {
-      font-family: 'CMU Serif', Georgia, serif;
-      font-size: 26px;
-      font-weight: 700;
-      color: #1f2937;
-    }
-
-    .org-card.intern-card .org-title {
-      font-size: 32px;
-      color: var(--red);
-    }
-
-    .org-you {
-      font-size: 20px;
-      color: var(--red);
-      font-weight: 600;
-      margin-top: 6px;
-    }
-
-    .org-connector {
-      width: 4px;
-      height: 20px;
-      background: #d1d5db;
-    }
-
-    /* Extra separation before INTERN */
-    .org-connector.intern-gap {
-      height: 90px;
-      width: 6px;
-      background: linear-gradient(180deg, #d1d5db 0%, rgba(209,229,251,0.0) 100%);
-      border-radius: 999px;
-      position: relative;
-      margin: 6px 0 10px;
-    }
-    .org-connector.intern-gap::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      bottom: -10px;
-      width: 18px;
-      height: 18px;
-      transform: translateX(-50%);
-      border-radius: 999px;
-      background: #ffffff;
-      border: 4px solid var(--red);
-      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
-    }
-
-    /* Reality card move up animation */
-    .reality-card.moved-up {
-      top: 8% !important;
-      transform: translate(-50%, 0) scale(0.75) !important;
-    }
-
-    /* === GOAL BADGES === */
-    .goal-badges {
+    .asset-wrapper {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      display: flex;
-      gap: 50px;
-      z-index: 10;
+      opacity: 0;
+      width: 90%;
     }
+    .asset-wrapper.show { animation: fadeUpCentered 0.5s ease-out forwards; }
+    .asset-wrapper.hide { animation: fadeOutCentered 0.3s ease-out forwards; }
 
-    .goal-badge {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      padding: 40px 50px;
-      border-radius: 20px;
+    /* ========== CELL HIGHLIGHT ========== */
+    .cell-row { display: flex; justify-content: center; gap: 40px; }
+    .highlight-cell {
+      background: #fff;
+      border: 3px solid #e5e7eb;
+      padding: 24px 40px;
+      font-family: 'Consolas', monospace;
+      font-size: 48px;
+      font-weight: 600;
+      color: #1f2937;
       opacity: 0;
       transform: scale(0.8);
     }
+    .highlight-cell.animate { animation: popIn 0.4s ease-out forwards; }
+    .highlight-cell.error { border-color: #dc2626; background: #fef2f2; }
+    .highlight-cell.success { border-color: #16a34a; background: #f0fdf4; }
+    .highlight-cell.warning { border-color: #f59e0b; background: #fffbeb; }
 
-    .goal-badge.align {
-      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-      border: 3px solid var(--blue-accent);
-    }
-
-    .goal-badge.ship {
-      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-      border: 3px solid var(--green);
-    }
-
-    .goal-emoji {
-      font-size: 80px;
-    }
-
-    .goal-text {
-      font-family: 'CMU Serif', Georgia, serif;
-      font-size: 36px;
-      font-weight: 700;
-    }
-
-    .goal-badge.align .goal-text { color: #1e40af; }
-    .goal-badge.ship .goal-text { color: #166534; }
-
-    /* === PLAYBOOK CONTAINER === */
-    .playbook-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 120px 60px;
-      z-index: 10;
-      display: none;
-    }
-
-    .playbook-title {
-      font-family: 'CMU Serif', Georgia, serif;
-      font-size: 56px;
-      font-weight: 700;
-      color: var(--text-dark);
-      margin-bottom: 60px;
-      opacity: 0;
-    }
-
-    .playbook-steps {
-      width: 100%;
-      max-width: 900px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .step-item {
-      display: flex;
-      align-items: center;
-      gap: 24px;
+    /* ========== INCOME STATEMENT ========== */
+    .income-container {
       background: #fff;
       border: 2px solid #e5e7eb;
-      border-radius: 16px;
-      padding: 28px 36px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-      opacity: 0;
-      transform: translateX(-40px);
+      border-radius: 8px;
+      overflow: hidden;
     }
-
-    .step-number {
-      width: 56px;
-      height: 56px;
-      background: var(--blue-accent);
+    .income-header {
+      background: #1e3a5f;
       color: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: 800;
-      flex-shrink: 0;
-    }
-
-    .step-content {
-      flex: 1;
-    }
-
-    .step-main {
-      font-family: 'CMU Serif', Georgia, serif;
+      font-family: Georgia, serif;
       font-size: 32px;
       font-weight: 600;
-      color: var(--text-dark);
-      margin-bottom: 6px;
+      padding: 20px 30px;
+      text-align: center;
     }
+    .income-table { width: 100%; border-collapse: collapse; font-family: 'Consolas', monospace; font-size: 24px; }
+    .income-table td { padding: 16px 30px; border-bottom: 1px solid #f3f4f6; }
+    .income-table .line-item { color: #374151; }
+    .income-table .line-item.indent { padding-left: 60px; color: #6b7280; }
+    .income-table .amount { text-align: right; color: #1f2937; }
+    .income-table .amount.negative { color: #dc2626; }
+    .income-table .subtotal td { background: #f9fafb; font-weight: 600; border-top: 1px solid #e5e7eb; }
+    .income-table .total td { background: #1e40af; color: #fff; font-weight: 700; font-size: 26px; }
+    .income-table .total .amount { color: #fff; }
 
-    .step-sub {
-      font-size: 22px;
-      color: var(--text-light);
-      font-style: italic;
-    }
-
-    .step-check {
-      width: 48px;
-      height: 48px;
-      background: var(--green);
-      color: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    /* ========== COMPS TABLE ========== */
+    .comps-container { width: 100%; }
+    .comps-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      font-family: 'Consolas', monospace;
       font-size: 24px;
-      opacity: 0;
-      transform: scale(0);
     }
+    .comps-table td { padding: 18px 20px; text-align: right; border-bottom: 1px solid #e5e7eb; color: #374151; }
+    .comps-header td { background: #1e40af; color: #fff; font-weight: 600; text-align: center; font-family: system-ui, sans-serif; }
+    .comps-table .company-name { text-align: left; font-weight: 500; color: #1f2937; }
+    .comps-table .ticker { text-align: center; color: #6b7280; font-size: 20px; }
+    .comps-median td { background: #f0f9ff; font-weight: 700; color: #1e40af; border-top: 2px solid #1e40af; }
 
-    /* === CTA CARD === */
-    .cta-card {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      z-index: 10;
-      display: none;
-      opacity: 0;
+    /* ========== LBO TABLE ========== */
+    .lbo-container {
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     }
-
-    .cta-line {
-      font-family: 'CMU Serif', Georgia, serif;
-      font-size: 64px;
+    .lbo-section { margin-bottom: 30px; }
+    .lbo-header {
+      font-family: Georgia, serif;
+      font-size: 32px;
       font-weight: 700;
-      line-height: 1.3;
-      opacity: 0;
-      transform: scale(0.9);
+      color: #1f2937;
+      border-bottom: 2px solid #1e40af;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
     }
-
-    .cta-line.line1 {
-      color: var(--text-dark);
+    .lbo-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      font-family: 'Consolas', monospace;
+      font-size: 24px;
+      color: #374151;
+      border-bottom: 1px solid #f3f4f6;
     }
-
-    .cta-line.line2 {
-      color: var(--red);
+    .lbo-row.total {
+      font-weight: 700;
+      color: #1f2937;
+      border-bottom: 2px solid #e5e7eb;
+      background: #f9fafb;
+      margin: 0 -20px;
+      padding: 12px 20px;
     }
+    .lbo-returns { display: flex; justify-content: center; gap: 60px; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; }
+    .return-metric { text-align: center; }
+    .return-value { display: block; font-family: Georgia, serif; font-size: 56px; font-weight: 700; color: #1e40af; }
+    .return-label { font-size: 20px; color: #6b7280; text-transform: uppercase; letter-spacing: 2px; }
 
-    .cta-emoji {
-      font-size: 80px;
-      margin: 30px 0;
-      opacity: 0;
+    /* ========== WATERFALL CHART ========== */
+    .waterfall-container {
+      background: #fff;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 40px;
     }
-
-    .cta-accent {
-      width: 150px;
-      height: 5px;
-      background: linear-gradient(90deg, var(--gold), var(--red));
-      margin: 30px auto;
-      border-radius: 3px;
-    }
-
-    /* === ANIMATIONS === */
-    @keyframes popIn {
-      0% { opacity: 0; transform: scale(0.5); }
-      70% { transform: scale(1.1); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-
-    @keyframes popInCentered {
-      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-      70% { transform: translate(-50%, -50%) scale(1.05); }
-      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    @keyframes fadeUp {
-      0% { opacity: 0; transform: translateY(30px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes fadeUpCentered {
-      0% { opacity: 0; transform: translate(-50%, calc(-50% + 30px)); }
-      100% { opacity: 1; transform: translate(-50%, -50%); }
-    }
-
-    @keyframes bounceIn {
-      0% { opacity: 0; transform: scale(0.3); }
-      50% { transform: scale(1.08); }
-      70% { transform: scale(0.95); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-
-    @keyframes bounceInCentered {
-      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-      50% { transform: translate(-50%, -50%) scale(1.08); }
-      70% { transform: translate(-50%, -50%) scale(0.95); }
-      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    @keyframes slideInLeft {
-      0% { opacity: 0; transform: translateX(-100%); }
-      100% { opacity: 1; transform: translateX(0); }
-    }
-
-    @keyframes slideInRight {
-      0% { opacity: 0; transform: translateX(100%); }
-      100% { opacity: 1; transform: translateX(0); }
-    }
-
-    @keyframes slideIn {
-      0% { opacity: 0; transform: translateX(-40px); }
-      100% { opacity: 1; transform: translateX(0); }
-    }
-
-    @keyframes popShake {
-      0% { opacity: 0; transform: translateX(-50%) scale(0.3); }
-      40% { opacity: 1; transform: translateX(-50%) scale(1.2); }
-      50% { transform: translateX(calc(-50% - 10px)) scale(1) rotate(-10deg); }
-      60% { transform: translateX(calc(-50% + 10px)) scale(1) rotate(10deg); }
-      70% { transform: translateX(calc(-50% - 5px)) scale(1) rotate(-5deg); }
-      80% { transform: translateX(calc(-50% + 5px)) scale(1) rotate(5deg); }
-      100% { opacity: 1; transform: translateX(-50%) scale(1) rotate(0); }
-    }
-
-    @keyframes fadeOut {
-      0% { opacity: 1; }
-      100% { opacity: 0; }
-    }
-
-    @keyframes checkPop {
-      0% { opacity: 0; transform: scale(0); }
-      60% { transform: scale(1.2); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: rotate(0); }
-      20% { transform: rotate(-2deg) translateX(-5px); }
-      40% { transform: rotate(2deg) translateX(5px); }
-      60% { transform: rotate(-1deg) translateX(-3px); }
-      80% { transform: rotate(1deg) translateX(3px); }
-    }
-
-    /* === PLAYGROUND SECTION CARD === */
-    .section-card {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 50;
-      display: none;
-      opacity: 0;
+    .waterfall-title {
+      font-family: Georgia, serif;
+      font-size: 36px;
+      font-weight: 700;
+      color: #1f2937;
       text-align: center;
+      margin-bottom: 40px;
     }
-    .section-title {
-      font-family: 'CMU Serif', Georgia, serif;
-      font-size: 84px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      color: var(--text-dark);
-      text-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    .waterfall-chart {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      height: 350px;
+      padding: 0 20px;
+      border-bottom: 2px solid #e5e7eb;
     }
-    .section-subtitle {
-      margin-top: 20px;
+    .waterfall-bar { display: flex; flex-direction: column; align-items: center; width: 140px; }
+    .bar-fill { width: 80px; border-radius: 4px 4px 0 0; transform: scaleY(0); transform-origin: bottom; }
+    .bar-fill.animate { animation: growUp 0.8s ease-out forwards; }
+    .waterfall-bar.start .bar-fill, .waterfall-bar.end .bar-fill { background: #1e40af; }
+    .waterfall-bar.positive .bar-fill { background: #16a34a; }
+    .waterfall-bar.negative .bar-fill { background: #dc2626; }
+    .bar-value { font-family: 'Consolas', monospace; font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .waterfall-bar.start .bar-value, .waterfall-bar.end .bar-value { color: #1e40af; }
+    .waterfall-bar.positive .bar-value { color: #16a34a; }
+    .waterfall-bar.negative .bar-value { color: #dc2626; }
+    .bar-label { font-size: 14px; color: #6b7280; text-align: center; margin-top: 12px; max-width: 100px; }
+
+    /* ========== SENSITIVITY TABLE ========== */
+    .sensitivity-container { width: 100%; }
+    .sensitivity {
+      background: #fff;
+      border: 2px solid #6b7280;
+      font-family: 'Consolas', 'Courier New', monospace;
       font-size: 28px;
-      font-weight: 650;
-      color: var(--text-light);
+      border-collapse: collapse;
+      width: 100%;
     }
+    .sensitivity td { border: 1px solid #d1d5db; padding: 16px 20px; color: #374151; text-align: center; min-width: 100px; }
+    .sensitivity td.corner { background: #f3f4f6; }
+    .sensitivity td.header, .sensitivity td.header-col, .sensitivity td.header-row { background: #e5e7eb; font-weight: 600; }
+    .sensitivity td.highlight { background: #dbeafe; border: 3px solid #1e40af; color: #1e40af; font-weight: 700; }
+    .sensitivity td.highlight.animate { animation: cellPulse 0.5s ease-out; }
+
+    /* ========== DCF TABLE ========== */
+    .spreadsheet {
+      background: #fff;
+      border: 2px solid #6b7280;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 22px;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .spreadsheet td { border: 1px solid #d1d5db; padding: 12px 16px; color: #374151; text-align: right; min-width: 90px; }
+    .spreadsheet td.label-col { text-align: left; background: #f9fafb; font-weight: 500; min-width: 200px; }
+    .spreadsheet td.header { background: #e5e7eb; font-weight: 600; text-align: center; }
+    .spreadsheet td.dash { color: #9ca3af; }
+
+    /* ========== ANIMATIONS ========== */
+    @keyframes fadeUp { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUpCentered { 0% { opacity: 0; transform: translate(-50%, -40%); } 100% { opacity: 1; transform: translate(-50%, -50%); } }
+    @keyframes fadeOut { 0% { opacity: 1; } 100% { opacity: 0; } }
+    @keyframes fadeOutCentered { 0% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(-50%, -50%); } }
+    @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+    @keyframes growUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    @keyframes cellPulse { 0%, 100% { background: #dbeafe; } 50% { background: #93c5fd; } }
   </style>
 </head>
 <body>
-
 <div class="shorts-container">
-  
-  <!-- Background Pattern -->
-  <div class="plus-pattern"></div>
+    <div class="white-backdrop">
+      <div class="section-label" id="sectionLabel">Excel Asset</div>
 
-  <!-- Bank Logos - LARGER -->
-  <div class="bank-logos" id="bankLogos">
-    <img src="../assets/logos/goldman-sachs.png" alt="Goldman Sachs" class="bank-logo" id="logoGS">
-    <img src="../assets/logos/JPMorgan.png" alt="JP Morgan" class="bank-logo" id="logoJPM">
-    <img src="../assets/logos/MorganStanley.png" alt="Morgan Stanley" class="bank-logo" id="logoMS">
+      <!-- 1. Cell Highlight -->
+      <div class="asset-wrapper" id="cells">
+        <div class="cell-row">
+          <div class="highlight-cell" id="cell1">$2.4M</div>
+          <div class="highlight-cell success" id="cell2">$3.1M</div>
+          <div class="highlight-cell error" id="cell3">($500K)</div>
+          <div class="highlight-cell warning" id="cell4">$1.2M</div>
   </div>
-
-  <!-- Wall Street Text -->
-  <div class="wall-street-text" id="wallStreetText">WALL STREET</div>
-
-  <!-- Playground section label -->
-  <div class="section-card" id="sectionCard">
-    <div class="section-title" id="sectionTitle">SECTION</div>
-    <div class="section-subtitle" id="sectionSubtitle">—</div>
-  </div>
-
-  <!-- Excel Tables Stack -->
-  <div class="excel-stack" id="excelStack">
-    <!-- Table 1: DCF -->
-    <div class="excel-table" id="excelTable1">
-      <div class="cross-out" id="crossOut1">
-        <div class="cross-line cross-line-1"></div>
-        <div class="cross-line cross-line-2"></div>
       </div>
-      <table>
-        <tr class="header-row">
-          <td></td>
-          <td>2024</td>
-          <td>2025</td>
-          <td>2026</td>
-          <td>2027</td>
-        </tr>
-        <tr>
-          <td class="label-col">Revenue</td>
-          <td>$1,200</td>
-          <td>$1,350</td>
-          <td class="highlight">$1,480</td>
-          <td>$1,620</td>
-        </tr>
-        <tr>
-          <td class="label-col">EBITDA</td>
-          <td>$240</td>
-          <td>$265</td>
-          <td>$290</td>
-          <td class="highlight">$320</td>
-        </tr>
+
+      <!-- 2. Income Statement -->
+      <div class="asset-wrapper" id="income">
+        <div class="income-container">
+          <div class="income-header">Income Statement (FY 2024)</div>
+          <table class="income-table">
+            <tr><td class="line-item">Revenue</td><td class="amount">$1,200,000</td></tr>
+            <tr><td class="line-item indent">Cost of Goods Sold</td><td class="amount negative">(720,000)</td></tr>
+            <tr class="subtotal"><td class="line-item">Gross Profit</td><td class="amount">$480,000</td></tr>
+            <tr><td class="line-item indent">SG&A</td><td class="amount negative">(180,000)</td></tr>
+            <tr><td class="line-item indent">D&A</td><td class="amount negative">(60,000)</td></tr>
+            <tr class="subtotal"><td class="line-item">Operating Income</td><td class="amount">$240,000</td></tr>
+            <tr><td class="line-item indent">Interest Expense</td><td class="amount negative">(40,000)</td></tr>
+            <tr class="subtotal"><td class="line-item">EBT</td><td class="amount">$200,000</td></tr>
+            <tr><td class="line-item indent">Taxes (25%)</td><td class="amount negative">(50,000)</td></tr>
+            <tr class="total"><td class="line-item">Net Income</td><td class="amount">$150,000</td></tr>
       </table>
     </div>
-
-    <!-- Table 2: Comps -->
-    <div class="excel-table" id="excelTable2">
-      <div class="cross-out" id="crossOut2">
-        <div class="cross-line cross-line-1"></div>
-        <div class="cross-line cross-line-2"></div>
-      </div>
-      <table>
-        <tr class="header-row">
-          <td>Company</td>
-          <td>EV/EBITDA</td>
-          <td>P/E</td>
-          <td>EV/Rev</td>
-        </tr>
-        <tr>
-          <td class="label-col">Goldman Sachs</td>
-          <td>8.2x</td>
-          <td class="highlight">12.4x</td>
-          <td>2.1x</td>
-        </tr>
-        <tr>
-          <td class="label-col">Morgan Stanley</td>
-          <td class="highlight">9.1x</td>
-          <td>14.2x</td>
-          <td>2.4x</td>
-        </tr>
-      </table>
     </div>
 
-    <!-- Table 3: LBO -->
-    <div class="excel-table" id="excelTable3">
-      <div class="cross-out" id="crossOut3">
-        <div class="cross-line cross-line-1"></div>
-        <div class="cross-line cross-line-2"></div>
-      </div>
-      <table>
-        <tr class="header-row">
-          <td></td>
-          <td>Entry</td>
-          <td>Year 3</td>
-          <td>Year 5</td>
-        </tr>
-        <tr>
-          <td class="label-col">Debt/EBITDA</td>
-          <td>5.5x</td>
-          <td class="highlight">3.2x</td>
-          <td>1.8x</td>
-        </tr>
-        <tr>
-          <td class="label-col">IRR</td>
-          <td>—</td>
-          <td>18.5%</td>
-          <td class="highlight">24.2%</td>
-        </tr>
+      <!-- 3. Comps Table -->
+      <div class="asset-wrapper" id="comps">
+        <div class="comps-container">
+          <table class="comps-table">
+            <tr class="comps-header"><td>Company</td><td>Ticker</td><td>EV/EBITDA</td><td>P/E</td><td>EV/Revenue</td></tr>
+            <tr><td class="company-name">Goldman Sachs</td><td class="ticker">GS</td><td>8.2x</td><td>12.4x</td><td>2.1x</td></tr>
+            <tr><td class="company-name">Morgan Stanley</td><td class="ticker">MS</td><td>9.1x</td><td>14.2x</td><td>2.4x</td></tr>
+            <tr><td class="company-name">JP Morgan</td><td class="ticker">JPM</td><td>7.8x</td><td>11.8x</td><td>1.9x</td></tr>
+            <tr class="comps-median"><td colspan="2">Median</td><td>8.2x</td><td>12.4x</td><td>2.1x</td></tr>
       </table>
     </div>
   </div>
 
-  <!-- What do you do text -->
-  <div class="what-text" id="whatText">
-    What do you do?
-    <span class="what-emoji">🤔</span>
+      <!-- 4. LBO Table -->
+      <div class="asset-wrapper" id="lbo">
+        <div class="lbo-container">
+          <div class="lbo-section">
+            <div class="lbo-header">Sources</div>
+            <div class="lbo-row"><span>Senior Debt</span><span>$400M</span></div>
+            <div class="lbo-row"><span>Mezzanine</span><span>$100M</span></div>
+            <div class="lbo-row"><span>Equity</span><span>$200M</span></div>
+            <div class="lbo-row total"><span>Total Sources</span><span>$700M</span></div>
   </div>
-
-  <!-- MCQ Container -->
-  <div class="mcq-container" id="mcqContainer">
-    <div class="mcq-question" id="mcqQuestion">What do you do? 🤔</div>
-    <div class="mcq-options">
-      <div class="mcq-option" id="optionA">
-        <span class="mcq-label">A)</span>
-        <span>Apologize and back down</span>
-        <span class="fire">😰</span>
+          <div class="lbo-section">
+            <div class="lbo-header">Uses</div>
+            <div class="lbo-row"><span>Purchase Price</span><span>$650M</span></div>
+            <div class="lbo-row"><span>Transaction Fees</span><span>$30M</span></div>
+            <div class="lbo-row"><span>Financing Fees</span><span>$20M</span></div>
+            <div class="lbo-row total"><span>Total Uses</span><span>$700M</span></div>
       </div>
-      <div class="mcq-option" id="optionB">
-        <span class="mcq-label">B)</span>
-        <span>Defend your model</span>
-        <span class="fire">🛡️</span>
-      </div>
-      <div class="mcq-option" id="optionC">
-        <span class="mcq-label">C)</span>
-        <span>Walk through their logic</span>
-        <span class="fire">🧠</span>
+          <div class="lbo-returns">
+            <div class="return-metric"><span class="return-value">2.5x</span><span class="return-label">MOIC</span></div>
+            <div class="return-metric"><span class="return-value">22%</span><span class="return-label">IRR</span></div>
       </div>
     </div>
   </div>
 
-  <!-- Reality Card -->
-  <div class="reality-card" id="realityCard">
-    <div class="reality-title">Let's get something straight</div>
-    <div class="reality-vs">
-      <div class="reality-badge badge-intern">INTERN</div>
-      <div class="vs-text">vs</div>
-      <div class="reality-badge badge-ft">FULL-TIMER</div>
-    </div>
+      <!-- 5. Waterfall Chart -->
+      <div class="asset-wrapper" id="waterfall">
+        <div class="waterfall-container">
+          <div class="waterfall-title">Enterprise Value Bridge</div>
+          <div class="waterfall-chart">
+            <div class="waterfall-bar start"><div class="bar-value">$500M</div><div class="bar-fill" id="bar1" style="height: 250px;"></div><div class="bar-label">Starting EV</div></div>
+            <div class="waterfall-bar positive"><div class="bar-value">+$80M</div><div class="bar-fill" id="bar2" style="height: 80px; margin-top: 170px;"></div><div class="bar-label">Revenue Growth</div></div>
+            <div class="waterfall-bar positive"><div class="bar-value">+$40M</div><div class="bar-fill" id="bar3" style="height: 40px; margin-top: 130px;"></div><div class="bar-label">Margin Expansion</div></div>
+            <div class="waterfall-bar negative"><div class="bar-value">-$20M</div><div class="bar-fill" id="bar4" style="height: 40px; margin-top: 130px;"></div><div class="bar-label">Multiple Contraction</div></div>
+            <div class="waterfall-bar end"><div class="bar-value">$600M</div><div class="bar-fill" id="bar5" style="height: 300px;"></div><div class="bar-label">Ending EV</div></div>
   </div>
-
-  <!-- IB Org Chart -->
-  <div class="org-chart" id="orgChart">
-    <div class="org-chart-inner" id="orgChartInner">
-      <div class="org-card md">
-        <div class="org-title">Managing Director</div>
-      </div>
-      <div class="org-connector"></div>
-      <div class="org-card director">
-        <div class="org-title">Director / ED</div>
-      </div>
-      <div class="org-connector"></div>
-      <div class="org-card vp">
-        <div class="org-title">Vice President</div>
-      </div>
-      <div class="org-connector"></div>
-      <div class="org-card associate">
-        <div class="org-title">Associate</div>
-      </div>
-      <div class="org-connector"></div>
-      <div class="org-card analyst">
-        <div class="org-title">Analyst</div>
-      </div>
-    <div class="org-connector intern-gap"></div>
-      <div class="org-card intern-card">
-        <div class="org-title">INTERN</div>
-        <div class="org-you">← That's you</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Goal Badges -->
-  <div class="goal-badges" id="goalBadges">
-    <div class="goal-badge align" id="goalBadgeAlign">
-      <div class="goal-emoji">🎯</div>
-      <div class="goal-text">ALIGN FAST</div>
-    </div>
-    <div class="goal-badge ship" id="goalBadgeShip">
-      <div class="goal-emoji">🚀</div>
-      <div class="goal-text">SHIP CLEAN</div>
-    </div>
-  </div>
-
-  <!-- Playbook Container -->
-  <div class="playbook-container" id="playbookContainer">
-    <div class="playbook-title" id="playbookTitle">The Playbook 📋</div>
-    <div class="playbook-steps">
-      <div class="step-item" id="step1">
-        <div class="step-number">1</div>
-        <div class="step-content">
-          <div class="step-main">Ask for the one thing</div>
-          <div class="step-sub">"What's the biggest issue?"</div>
         </div>
-        <div class="step-check" id="check1">✓</div>
       </div>
-      <div class="step-item" id="step2">
-        <div class="step-number">2</div>
-        <div class="step-content">
-          <div class="step-main">Repeat it back</div>
-          <div class="step-sub">"So the concern is X because Y?"</div>
+
+      <!-- 6. Sensitivity Table -->
+      <div class="asset-wrapper" id="sensitivity">
+        <div class="sensitivity-container">
+          <table class="sensitivity">
+            <tr><td class="corner"></td><td class="header-col" colspan="4">Exit Multiple</td></tr>
+            <tr><td class="header">WACC</td><td class="header">6.0x</td><td class="header">7.0x</td><td class="header">8.0x</td><td class="header">9.0x</td></tr>
+            <tr><td class="header">8.0%</td><td>$52</td><td>$58</td><td>$64</td><td>$70</td></tr>
+            <tr><td class="header">9.0%</td><td>$48</td><td>$54</td><td>$60</td><td>$66</td></tr>
+            <tr><td class="header">10.0%</td><td>$44</td><td>$50</td><td class="highlight" id="sensHighlight">$56</td><td>$62</td></tr>
+            <tr><td class="header">11.0%</td><td>$40</td><td>$46</td><td>$52</td><td>$58</td></tr>
+          </table>
         </div>
-        <div class="step-check" id="check2">✓</div>
       </div>
-      <div class="step-item" id="step3">
-        <div class="step-number">3</div>
-        <div class="step-content">
-          <div class="step-main">Commit to a timeline</div>
-          <div class="step-sub">"I'll fix this and resend by EOD"</div>
-        </div>
-        <div class="step-check" id="check3">✓</div>
-      </div>
-      <div class="step-item" id="step4">
-        <div class="step-number">4</div>
-        <div class="step-content">
-          <div class="step-main">Send a quick recap</div>
-          <div class="step-sub">What changed, why, what to confirm</div>
-        </div>
-        <div class="step-check" id="check4">✓</div>
+
+      <!-- 7. DCF Table -->
+      <div class="asset-wrapper" id="dcf">
+        <table class="spreadsheet">
+          <tr><td class="header"></td><td class="header">2024</td><td class="header">2025</td><td class="header">2026</td><td class="header">2027</td><td class="header">2028</td></tr>
+          <tr><td class="label-col">Revenue</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+          <tr><td class="label-col">EBITDA</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+          <tr><td class="label-col">FCF</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+          <tr><td class="label-col">Discount Factor</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+          <tr><td class="label-col">PV of FCF</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+          <tr><td class="label-col">Terminal Value</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+        </table>
       </div>
     </div>
-  </div>
-
-  <!-- CTA Card -->
-  <div class="cta-card" id="ctaCard">
-    <div class="cta-line line1" id="ctaLine1">HANDLE PRESSURE</div>
-    <div class="cta-emoji" id="ctaEmoji">🔥</div>
-    <div class="cta-accent"></div>
-    <div class="cta-line line2" id="ctaLine2">DON'T GET WALKED OVER</div>
-  </div>
-
 </div>
 
 <script>
-  let speed = 1; // keep at 1x for the playground
+    let globalOffset = 0;
+    function at(ms) { return ms + globalOffset; }
+    function addDelay(ms) { globalOffset += ms; }
 
-  function t(ms) {
-    return ms / speed;
-  }
+    function showEl(id) { document.getElementById(id).classList.add('show'); }
+    function hideEl(id) { document.getElementById(id).classList.remove('show'); document.getElementById(id).classList.add('hide'); }
+    function animateEl(id, cls = 'animate') { document.getElementById(id).classList.add(cls); }
+    function setLabel(text) { const el = document.getElementById('sectionLabel'); el.textContent = text; el.classList.add('show'); }
+    function clearLabel() { document.getElementById('sectionLabel').classList.remove('show'); }
 
-  // Global shifting helpers (useful when authoring: insert breathing room without retiming everything)
-  let __timelineShiftMs = 0;
-  function at(ms) {
-    return t(ms + __timelineShiftMs);
-  }
-  function addDelay(ms) {
-    __timelineShiftMs += ms;
-  }
-
-  function showEl(id, animation, duration = 350) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.display = 'block';
-    if (el.classList.contains('bank-logos') || el.classList.contains('goal-badges') ||
-        el.classList.contains('mcq-container') || el.classList.contains('playbook-container') ||
-        el.classList.contains('excel-stack')) {
-      el.style.display = 'flex';
-    }
-    el.style.animation = `${animation} ${duration}ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards`;
-  }
-
-  function hideEl(id, duration = 260) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.animation = `fadeOut ${duration}ms ease-out forwards`;
-    setTimeout(() => { el.style.display = 'none'; }, duration);
-  }
-
-  function showSection(title, subtitle = '', holdMs = 900) {
-    const card = document.getElementById('sectionCard');
-    const tEl = document.getElementById('sectionTitle');
-    const sEl = document.getElementById('sectionSubtitle');
-    if (!card || !tEl || !sEl) return;
-    tEl.textContent = title;
-    sEl.textContent = subtitle;
-    card.style.display = 'block';
-    card.style.animation = 'popInCentered 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
-    setTimeout(() => hideEl('sectionCard', 220), holdMs);
-  }
-
-  function crossOutTable(tableId, crossId) {
-    const table = document.getElementById(tableId);
-    const cross = document.getElementById(crossId);
-
-    if (table) {
-      table.style.opacity = '1';
-      table.style.animation = 'shake 0.4s ease-in-out';
-      table.classList.add('crossed');
+    function resetAll() {
+      document.querySelectorAll('.asset-wrapper, .section-label').forEach(el => { el.classList.remove('show', 'hide'); });
+      document.querySelectorAll('.animate').forEach(el => { el.classList.remove('animate'); });
+      globalOffset = 0;
     }
 
-    if (cross) {
-      cross.classList.add('active');
-      cross.style.opacity = '1';
-      cross.style.display = 'block';
-      const lines = cross.querySelectorAll('.cross-line');
-      lines.forEach((line, i) => {
-        line.style.display = 'block';
-        line.style.opacity = '1';
-        line.style.background = '#ef4444';
-        line.style.height = '12px';
-        line.style.transition = 'width 0.3s ease-out';
-        line.style.transitionDelay = (i * 0.1) + 's';
-        line.style.width = '100%';
-      });
-    }
-  }
+    function playShowcase() {
+      resetAll();
+      const DURATION = 5000;
 
-  async function __loadSnippets(paths) {
-    const out = [];
-    for (const p of paths) {
-      try {
-        const r = await fetch(p);
-        out.push({ path: p, ok: r.ok, text: r.ok ? await r.text() : '' });
-      } catch (e) {
-        out.push({ path: p, ok: false, text: '' });
-      }
-    }
-    return out;
-  }
+      // 1. Cell Highlight
+      setTimeout(() => { setLabel('Cell Highlight'); showEl('cells'); }, at(0));
+      setTimeout(() => animateEl('cell1'), at(100));
+      setTimeout(() => animateEl('cell2'), at(250));
+      setTimeout(() => animateEl('cell3'), at(400));
+      setTimeout(() => animateEl('cell4'), at(550));
+      setTimeout(() => { hideEl('cells'); clearLabel(); }, at(DURATION));
+      addDelay(DURATION + 500);
 
-  function __mountShowcase({ title, subtitle, items }) {
-    const root = document.querySelector('.shorts-container');
-    root.innerHTML = `
-      <div class="plus-pattern"></div>
-      <div style="position:absolute;top:70px;left:70px;right:70px;z-index:5;">
-        <div style="font-family:'CMU Serif',Georgia,serif;font-size:64px;font-weight:800;color:var(--text-dark);">ASSETS: ${title}</div>
-        <div style="margin-top:10px;font-size:22px;color:var(--text-light);">Open via a local server (file:// may block fetch). ${subtitle}</div>
-      </div>
-      <div id="grid" style="position:absolute;top:210px;left:50px;right:50px;bottom:50px;overflow:auto;z-index:5;display:grid;grid-template-columns:1fr;gap:26px;padding:10px 10px 30px;"></div>
-    `;
-    const grid = document.getElementById('grid');
-    for (const it of items) {
-      const card = document.createElement('div');
-      card.style.background = '#fff';
-      card.style.border = '2px solid #e5e7eb';
-      card.style.borderRadius = '16px';
-      card.style.boxShadow = '0 10px 30px rgba(0,0,0,0.08)';
-      card.style.padding = '18px 18px 10px';
-      card.innerHTML = `
-        <div style="font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:14px;color:#374151;margin-bottom:12px;">${it.path}</div>
-        <div style="border-radius:14px;border:1px solid #eef2f7;overflow:hidden;background:#f8fafc;padding:18px;" data-slot></div>
-      `;
-      const slot = card.querySelector('[data-slot]');
-      if (it.ok) slot.innerHTML = it.text;
-      else slot.innerHTML = `<div style="color:#ef4444;font-weight:700;">Failed to load</div>`;
-      grid.appendChild(card);
-    }
-  }
+      // 2. Income Statement
+      setTimeout(() => { setLabel('Income Statement'); showEl('income'); }, at(0));
+      setTimeout(() => { hideEl('income'); clearLabel(); }, at(DURATION));
+      addDelay(DURATION + 500);
 
-  window.onload = async () => {
-    const paths = [
-      '../assets/excel/cell-highlight.html',
-      '../assets/excel/comps-table.html',
-      '../assets/excel/dcf-table.html',
-      '../assets/excel/income-statement.html',
-      '../assets/excel/lbo-table.html',
-      '../assets/excel/sensitivity-table.html',
-      '../assets/excel/waterfall-chart.html'
-    ];
-    const items = await __loadSnippets(paths);
-    __mountShowcase({ title: 'excel', subtitle: 'HTML snippets from assets/excel.', items });
-  };
+      // 3. Comps Table
+      setTimeout(() => { setLabel('Comps Table'); showEl('comps'); }, at(0));
+      setTimeout(() => { hideEl('comps'); clearLabel(); }, at(DURATION));
+      addDelay(DURATION + 500);
+
+      // 4. LBO Table
+      setTimeout(() => { setLabel('LBO Sources & Uses'); showEl('lbo'); }, at(0));
+      setTimeout(() => { hideEl('lbo'); clearLabel(); }, at(DURATION));
+      addDelay(DURATION + 500);
+
+      // 5. Waterfall Chart
+      setTimeout(() => { setLabel('Waterfall Chart'); showEl('waterfall'); }, at(0));
+      setTimeout(() => animateEl('bar1'), at(200));
+      setTimeout(() => animateEl('bar2'), at(400));
+      setTimeout(() => animateEl('bar3'), at(600));
+      setTimeout(() => animateEl('bar4'), at(800));
+      setTimeout(() => animateEl('bar5'), at(1000));
+      setTimeout(() => { hideEl('waterfall'); clearLabel(); }, at(DURATION));
+      addDelay(DURATION + 500);
+
+      // 6. Sensitivity Table
+      setTimeout(() => { setLabel('Sensitivity Table'); showEl('sensitivity'); }, at(0));
+      setTimeout(() => animateEl('sensHighlight'), at(1000));
+      setTimeout(() => { hideEl('sensitivity'); clearLabel(); }, at(DURATION));
+      addDelay(DURATION + 500);
+
+      // 7. DCF Table
+      setTimeout(() => { setLabel('DCF Template'); showEl('dcf'); }, at(0));
+      setTimeout(() => { hideEl('dcf'); clearLabel(); }, at(DURATION));
+      addDelay(DURATION + 500);
+
+      // Loop
+      setTimeout(() => playShowcase(), at(1000));
+    }
+
+    window.onload = playShowcase;
 </script>
-
-<!--
-PLAYGROUND MANUAL (copy/paste guidance)
-
-Goal: this file is a catalog of reusable “beats” you can transplant into runs/<id>/scene.html.
-
-Key helpers:
-- at(ms): schedule something at ms (plus global shift). Use for timelines.
-- addDelay(ms): pushes ALL subsequent scheduled events by +ms (insert breathing room without retiming every line).
-- showEl(id, animation, duration): shows an element and plays a named @keyframes animation.
-- hideEl(id, duration): fades out then display:none.
-
-Patterns in this template:
-1) LOGO_STACK
-   - Container: #bankLogos (display:flex)
-   - Children: #logoGS/#logoJPM/#logoMS (popIn)
-   - Tip: stagger 250–350ms; hold 600–900ms; fade out quickly.
-
-2) EXCEL_STACK + CROSS_OUT
-   - Container: #excelStack (display:flex)
-   - Tables: #excelTable1/2/3 (slideInLeft/Right)
-   - Cross-out: crossOutTable(tableId, crossId) draws an X using real DOM lines (.cross-line).
-   - Tip: keep cross-outs word-anchored; if the fade-out clashes, addDelay(...) after the last cross-out.
-
-3) QUESTION_HEADER → OPTIONS
-   - Question: #whatText (bounceInCentered), then add class .moved-up to become a top header.
-   - Options: #mcqContainer + #optionA/B/C (slideIn stagger)
-   - Tip: do NOT duplicate the question line; hide #mcqQuestion when using the header move pattern.
-
-4) REALITY_CARD + ORG_CHART
-   - Reality: #realityCard (bounceInCentered), then .moved-up (top + scale down).
-   - Org: #orgChart (centered container), animate child #orgChartInner (keeps centering stable).
-   - Intern separation: .org-connector.intern-gap before the INTERN card.
-
-5) BADGES / CHECKLIST / CTA
-   - #goalBadges, #playbookContainer, #ctaCard: these are standard “infographic beats”.
-
-Asset paths:
-- This template lives in Shorts/templates/, so assets should be referenced like:
-  - ../assets/logos/...
-  - ../assets/components/...
-  - ../assets/excel/...
-  - ../assets/finance/...
-
-Recommended workflow:
-- Duplicate this file into runs/<id>/scene.html
-- Delete sections you don’t need
-- Replace text/content, keep IDs + animations
-- If syncing to audio later: replace timings with tts_words.json start_ms/end_ms anchors.
--->
-
 </body>
 </html>
